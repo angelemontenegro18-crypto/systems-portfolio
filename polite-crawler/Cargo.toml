@@ -1,0 +1,16 @@
+[package]
+name = "polite-crawler"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Crawler honesto: identidad declarada con contacto, robots.txt según RFC 9309 sin forma de ignorarlo, límites por host, Retry-After y backoff."
+readme = "README.md"
+keywords = ["crawler", "robots-txt", "rfc9309", "rate-limit", "http"]
+categories = ["web-programming::http-client"]
+
+[dependencies]
+ureq = { version = "2", default-features = false, features = ["tls"] }
+url = "2"
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

@@ -1,0 +1,18 @@
+[package]
+name = "content-triage"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Triaje determinista de contenido web no confiable antes de que llegue a un LLM: basura, inyección de prompts, texto oculto."
+readme = "README.md"
+keywords = ["llm", "prompt-injection", "security", "sanitization", "html"]
+categories = ["text-processing", "parser-implementations"]
+
+[dependencies]
+# NFKC: un ataque puede esconderse en la codificación (letras de ancho completo,
+# ligaduras, compatibilidad). Normalizar antes de buscar patrones es corrección
+# de seguridad, no cosmética.
+unicode-normalization = "0.1"
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

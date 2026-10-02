@@ -1,0 +1,17 @@
+[package]
+name = "sealed-checkpoint"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Checkpoints sellados con XChaCha20-Poly1305: escritura atómica y durable, encabezado autenticado, ligados a su nombre y con protección contra retroceso."
+readme = "README.md"
+keywords = ["encryption", "aead", "checkpoint", "atomic-write", "persistence"]
+categories = ["cryptography", "filesystem"]
+
+[dependencies]
+chacha20poly1305 = "0.10"
+getrandom = "0.2"
+zeroize = "1"
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

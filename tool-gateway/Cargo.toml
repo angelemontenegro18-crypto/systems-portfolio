@@ -1,0 +1,15 @@
+[package]
+name = "tool-gateway"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Registro de herramientas para LLMs con function calling: solo funciones puras, lista de exclusión verificada por test, argumentos validados contra su esquema."
+readme = "README.md"
+keywords = ["llm", "function-calling", "tools", "json-schema", "ai-safety"]
+categories = ["api-bindings", "data-structures"]
+
+[dependencies]
+serde_json = "1"
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

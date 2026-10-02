@@ -1,0 +1,16 @@
+[package]
+name = "modbus-ro"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Cliente Modbus TCP de solo lectura: la escritura no existe en el sistema de tipos."
+readme = "README.md"
+keywords = ["modbus", "industrial", "plc", "read-only", "scada"]
+categories = ["network-programming", "embedded"]
+
+# Sin dependencias, a propósito: ninguna librería de terceros puede meter por
+# la puerta de atrás un camino de escritura. `tests/solo_lectura.rs` lo verifica.
+[dependencies]
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

@@ -20,7 +20,10 @@ pub struct ConfigCompartida {
 
 impl Codificable<2> for ConfigCompartida {
     fn a_palabras(&self) -> [u64; 2] {
-        [u64::from(self.max_elementos), u64::from_ne_bytes(self.factor.to_ne_bytes())]
+        [
+            u64::from(self.max_elementos),
+            u64::from_ne_bytes(self.factor.to_ne_bytes()),
+        ]
     }
     fn desde_palabras(p: [u64; 2]) -> Self {
         Self {

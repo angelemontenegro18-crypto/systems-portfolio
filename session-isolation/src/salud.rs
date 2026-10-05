@@ -95,15 +95,20 @@ pub struct Juez {
 impl Juez {
     /// Un juez con estos umbrales.
     pub fn nuevo(umbrales: Umbrales) -> Self {
-        Self { umbrales, consecutivas: HashMap::new() }
+        Self {
+            umbrales,
+            consecutivas: HashMap::new(),
+        }
     }
 
     /// Evalúa una medición del slot. La peor métrica medida decide.
     pub fn evaluar(&mut self, slot: SlotId, m: &Medicion) -> Veredicto {
         let u = &self.umbrales;
         let niveles = [
-            m.memoria_bytes.map(|v| nivel(v, u.memoria_aviso, u.memoria_critica)),
-            m.latencia.map(|v| nivel(v, u.latencia_aviso, u.latencia_critica)),
+            m.memoria_bytes
+                .map(|v| nivel(v, u.memoria_aviso, u.memoria_critica)),
+            m.latencia
+                .map(|v| nivel(v, u.latencia_aviso, u.latencia_critica)),
         ];
         let Some(peor) = niveles.into_iter().flatten().max() else {
             return Veredicto::SinDatos;
@@ -121,7 +126,9 @@ impl Juez {
                 if *cuenta >= u.persistencia {
                     Veredicto::Reemplazar
                 } else {
-                    Veredicto::Critico { consecutivas: *cuenta }
+                    Veredicto::Critico {
+                        consecutivas: *cuenta,
+                    }
                 }
             }
         }
@@ -162,16 +169,29 @@ mod tests {
     }
 
     fn mem(mib: u64) -> Medicion {
-        Medicion { memoria_bytes: Some(mib * MIB), latencia: None }
+        Medicion {
+            memoria_bytes: Some(mib * MIB),
+            latencia: None,
+        }
     }
 
     #[test]
     fn un_pico_aislado_no_reemplaza() {
         let mut j = juez();
-        assert_eq!(j.evaluar(1, &mem(300)), Veredicto::Critico { consecutivas: 1 });
-        assert_eq!(j.evaluar(1, &mem(300)), Veredicto::Critico { consecutivas: 2 });
+        assert_eq!(
+            j.evaluar(1, &mem(300)),
+            Veredicto::Critico { consecutivas: 1 }
+        );
+        assert_eq!(
+            j.evaluar(1, &mem(300)),
+            Veredicto::Critico { consecutivas: 2 }
+        );
         assert_eq!(j.evaluar(1, &mem(50)), Veredicto::Sano);
-        assert_eq!(j.evaluar(1, &mem(300)), Veredicto::Critico { consecutivas: 1 }, "la cuenta volvió a cero");
+        assert_eq!(
+            j.evaluar(1, &mem(300)),
+            Veredicto::Critico { consecutivas: 1 },
+            "la cuenta volvió a cero"
+        );
     }
 
     #[test]
@@ -187,7 +207,10 @@ mod tests {
         let mut j = juez();
         j.evaluar(1, &mem(300));
         assert_eq!(j.evaluar(1, &mem(150)), Veredicto::Aviso);
-        assert_eq!(j.evaluar(1, &mem(300)), Veredicto::Critico { consecutivas: 2 });
+        assert_eq!(
+            j.evaluar(1, &mem(300)),
+            Veredicto::Critico { consecutivas: 2 }
+        );
     }
 
     #[test]
@@ -196,13 +219,20 @@ mod tests {
         j.evaluar(1, &mem(300));
         j.evaluar(1, &mem(300));
         assert_eq!(j.evaluar(1, &Medicion::default()), Veredicto::SinDatos);
-        assert_eq!(j.evaluar(1, &mem(300)), Veredicto::Reemplazar, "la cuenta no se reinició");
+        assert_eq!(
+            j.evaluar(1, &mem(300)),
+            Veredicto::Reemplazar,
+            "la cuenta no se reinició"
+        );
     }
 
     #[test]
     fn la_peor_metrica_decide() {
         let mut j = juez();
-        let m = Medicion { memoria_bytes: Some(10 * MIB), latencia: Some(Duration::from_secs(2)) };
+        let m = Medicion {
+            memoria_bytes: Some(10 * MIB),
+            latencia: Some(Duration::from_secs(2)),
+        };
         assert_eq!(j.evaluar(1, &m), Veredicto::Critico { consecutivas: 1 });
     }
 
@@ -211,9 +241,15 @@ mod tests {
         let mut j = juez();
         j.evaluar(1, &mem(300));
         j.evaluar(1, &mem(300));
-        assert_eq!(j.evaluar(2, &mem(300)), Veredicto::Critico { consecutivas: 1 });
+        assert_eq!(
+            j.evaluar(2, &mem(300)),
+            Veredicto::Critico { consecutivas: 1 }
+        );
         j.olvidar(1);
-        assert_eq!(j.evaluar(1, &mem(300)), Veredicto::Critico { consecutivas: 1 });
+        assert_eq!(
+            j.evaluar(1, &mem(300)),
+            Veredicto::Critico { consecutivas: 1 }
+        );
     }
 
     #[test]

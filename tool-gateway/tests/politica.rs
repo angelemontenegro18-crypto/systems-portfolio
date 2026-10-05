@@ -22,7 +22,11 @@ fn herramienta(nombre: &'static str) -> Herramienta {
 fn ninguna_herramienta_vetada_esta_en_el_catalogo() {
     let r = catalogo().expect("catálogo válido");
     for v in EXCLUIDAS {
-        assert!(!r.nombres().contains(&v.nombre), "`{}` está vetada y aparece registrada", v.nombre);
+        assert!(
+            !r.nombres().contains(&v.nombre),
+            "`{}` está vetada y aparece registrada",
+            v.nombre
+        );
     }
 }
 
@@ -62,7 +66,11 @@ fn cada_herramienta_es_determinista() {
     for h in r.herramientas() {
         let a = r.invocar(h.nombre, &h.ejemplo);
         let b = r.invocar(h.nombre, &h.ejemplo);
-        assert!(a.is_ok(), "`{}` falla con su propio ejemplo: {a:?}", h.nombre);
+        assert!(
+            a.is_ok(),
+            "`{}` falla con su propio ejemplo: {a:?}",
+            h.nombre
+        );
         assert_eq!(a, b, "`{}` no es determinista", h.nombre);
     }
 }
@@ -87,15 +95,28 @@ fn el_manifiesto_tiene_la_forma_de_function_calling() {
 fn nombres_duplicados_invalidos_y_esquemas_que_prometen_de_mas_se_rechazan() {
     let mut r = Registro::nuevo();
     r.registrar(herramienta("una")).expect("primera");
-    assert_eq!(r.registrar(herramienta("una")), Err(ErrorRegistro::Duplicada("una".into())));
-    assert!(matches!(r.registrar(herramienta("Con-Mayus")), Err(ErrorRegistro::NombreInvalido(_))));
+    assert_eq!(
+        r.registrar(herramienta("una")),
+        Err(ErrorRegistro::Duplicada("una".into()))
+    );
+    assert!(matches!(
+        r.registrar(herramienta("Con-Mayus")),
+        Err(ErrorRegistro::NombreInvalido(_))
+    ));
 
     let mut con_pattern = herramienta("patron");
-    con_pattern.esquema = json!({"type": "object", "properties": {"c": {"type": "string", "pattern": "^a"}}});
+    con_pattern.esquema =
+        json!({"type": "object", "properties": {"c": {"type": "string", "pattern": "^a"}}});
     con_pattern.ejemplo = json!({"c": "a"});
-    assert!(matches!(r.registrar(con_pattern), Err(ErrorRegistro::EsquemaInvalido { .. })));
+    assert!(matches!(
+        r.registrar(con_pattern),
+        Err(ErrorRegistro::EsquemaInvalido { .. })
+    ));
 
     let mut mal_ejemplo = herramienta("mal_ejemplo");
     mal_ejemplo.ejemplo = json!({"extra": 1});
-    assert!(matches!(r.registrar(mal_ejemplo), Err(ErrorRegistro::EjemploInvalido { .. })));
+    assert!(matches!(
+        r.registrar(mal_ejemplo),
+        Err(ErrorRegistro::EjemploInvalido { .. })
+    ));
 }

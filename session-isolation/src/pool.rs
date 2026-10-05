@@ -76,7 +76,10 @@ impl fmt::Display for ErrorPool {
         match self {
             Self::SinCupo { max } => write!(f, "el pool ya tiene {max} slots"),
             Self::SinMargen { procesos, tope } => {
-                write!(f, "el reemplazo necesita {procesos} procesos a la vez y el tope es {tope}")
+                write!(
+                    f,
+                    "el reemplazo necesita {procesos} procesos a la vez y el tope es {tope}"
+                )
             }
             Self::NoExiste(id) => write!(f, "no existe el slot {id}"),
             Self::Lanzar(e) => write!(f, "no se pudo lanzar el proceso: {e}"),
@@ -140,20 +143,37 @@ impl Pool {
     /// Un pool de hasta `max_slots` slots, con `margen_de_reemplazo` procesos
     /// extra permitidos durante un reemplazo.
     pub fn nuevo(max_slots: usize, margen_de_reemplazo: usize) -> Self {
-        Self { max_slots, margen: margen_de_reemplazo, slots: Vec::new(), siguiente_id: 1 }
+        Self {
+            max_slots,
+            margen: margen_de_reemplazo,
+            slots: Vec::new(),
+            siguiente_id: 1,
+        }
     }
 
     /// Crea un slot y lanza su proceso.
-    pub fn lanzar(&mut self, etiqueta: impl Into<String>, receta: Receta) -> Result<SlotId, ErrorPool> {
+    pub fn lanzar(
+        &mut self,
+        etiqueta: impl Into<String>,
+        receta: Receta,
+    ) -> Result<SlotId, ErrorPool> {
         if self.slots.len() >= self.max_slots {
-            return Err(ErrorPool::SinCupo { max: self.max_slots });
+            return Err(ErrorPool::SinCupo {
+                max: self.max_slots,
+            });
         }
         let proceso = lanzar_proceso(&receta).map_err(ErrorPool::Lanzar)?;
         let id = self.siguiente_id;
         self.siguiente_id += 1;
         let ahora = Instant::now();
         self.slots.push(Slot {
-            meta: MetaSlot { id, etiqueta: etiqueta.into(), receta, creado: ahora, reemplazos: 0 },
+            meta: MetaSlot {
+                id,
+                etiqueta: etiqueta.into(),
+                receta,
+                creado: ahora,
+                reemplazos: 0,
+            },
             proceso,
             desde: ahora,
         });
@@ -195,7 +215,12 @@ impl Pool {
         slot.desde = Instant::now();
         slot.meta.receta = receta;
         slot.meta.reemplazos += 1;
-        Ok(Evento::Reemplazado { slot: id, pid_anterior, pid_nuevo, motivo: motivo.to_string() })
+        Ok(Evento::Reemplazado {
+            slot: id,
+            pid_anterior,
+            pid_nuevo,
+            motivo: motivo.to_string(),
+        })
     }
 
     /// Termina el proceso de un slot y lo quita del pool.
@@ -219,7 +244,11 @@ impl Pool {
 
     /// Un ciclo de salud: reemplaza los procesos caídos y los que el juez
     /// condena. `medir` recibe un pid y devuelve lo que se pudo medir de él.
-    pub fn ciclo_de_salud(&mut self, juez: &mut Juez, mut medir: impl FnMut(u32) -> Medicion) -> Vec<Evento> {
+    pub fn ciclo_de_salud(
+        &mut self,
+        juez: &mut Juez,
+        mut medir: impl FnMut(u32) -> Medicion,
+    ) -> Vec<Evento> {
         let mut eventos = Vec::new();
 
         for (id, codigo) in self.caidos() {
@@ -227,7 +256,11 @@ impl Pool {
             eventos.push(self.reemplazar_registrando(id, &motivo, juez));
         }
 
-        let vivos: Vec<(SlotId, u32)> = self.slots.iter().map(|s| (s.meta.id, s.proceso.id())).collect();
+        let vivos: Vec<(SlotId, u32)> = self
+            .slots
+            .iter()
+            .map(|s| (s.meta.id, s.proceso.id()))
+            .collect();
         for (id, pid) in vivos {
             if juez.evaluar(id, &medir(pid)) == Veredicto::Reemplazar {
                 let motivo = "métricas críticas sostenidas".to_string();
@@ -243,7 +276,11 @@ impl Pool {
                 juez.olvidar(id);
                 evento
             }
-            Err(e) => Evento::ReemplazoFallido { slot: id, motivo: motivo.to_string(), error: e.to_string() },
+            Err(e) => Evento::ReemplazoFallido {
+                slot: id,
+                motivo: motivo.to_string(),
+                error: e.to_string(),
+            },
         }
     }
 
@@ -251,7 +288,11 @@ impl Pool {
     pub fn vista(&self) -> Vec<VistaSlot> {
         self.slots
             .iter()
-            .map(|s| VistaSlot { meta: s.meta.clone(), pid: s.proceso.id(), proceso_desde: s.desde })
+            .map(|s| VistaSlot {
+                meta: s.meta.clone(),
+                pid: s.proceso.id(),
+                proceso_desde: s.desde,
+            })
             .collect()
     }
 
@@ -266,7 +307,10 @@ impl Pool {
     }
 
     fn indice(&self, id: SlotId) -> Result<usize, ErrorPool> {
-        self.slots.iter().position(|s| s.meta.id == id).ok_or(ErrorPool::NoExiste(id))
+        self.slots
+            .iter()
+            .position(|s| s.meta.id == id)
+            .ok_or(ErrorPool::NoExiste(id))
     }
 }
 

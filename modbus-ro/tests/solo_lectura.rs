@@ -21,8 +21,15 @@ const CODIGOS_DE_ESCRITURA: [u8; 7] = [5, 6, 15, 16, 21, 22, 23];
 
 /// Fragmentos de nombre que delatarían una operación de escritura. `write_all`
 /// no está: es el envío de bytes al socket, que cualquier cliente necesita.
-const NOMBRES_DE_ESCRITURA: [&str; 7] =
-    ["escrib", "write_register", "write_coil", "write_multiple", "write_single", "preset_", "force_"];
+const NOMBRES_DE_ESCRITURA: [&str; 7] = [
+    "escrib",
+    "write_register",
+    "write_coil",
+    "write_multiple",
+    "write_single",
+    "preset_",
+    "force_",
+];
 
 fn raiz() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -44,7 +51,11 @@ fn archivos_rust(dir: &Path, salida: &mut Vec<PathBuf>) {
 /// escondan código.
 fn sin_comentarios(ruta: &Path) -> String {
     let texto = std::fs::read_to_string(ruta).expect("fuente legible");
-    assert!(!texto.contains("/*"), "{}: comentario de bloque; adaptar el escaneo", ruta.display());
+    assert!(
+        !texto.contains("/*"),
+        "{}: comentario de bloque; adaptar el escaneo",
+        ruta.display()
+    );
     texto
         .lines()
         .map(|linea| match linea.find("//") {
@@ -82,7 +93,10 @@ fn hallazgos(codigo: &str) -> Vec<String> {
 fn el_codigo_fuente_no_contiene_ningun_camino_de_escritura() {
     let mut archivos = Vec::new();
     archivos_rust(&raiz().join("src"), &mut archivos);
-    assert!(archivos.len() >= 4, "no se encontraron las fuentes: {archivos:?}");
+    assert!(
+        archivos.len() >= 4,
+        "no se encontraron las fuentes: {archivos:?}"
+    );
 
     for ruta in archivos {
         let h = hallazgos(&sin_comentarios(&ruta));
@@ -92,7 +106,8 @@ fn el_codigo_fuente_no_contiene_ningun_camino_de_escritura() {
 
 #[test]
 fn el_crate_no_declara_dependencias() {
-    let manifiesto = std::fs::read_to_string(raiz().join("Cargo.toml")).expect("Cargo.toml legible");
+    let manifiesto =
+        std::fs::read_to_string(raiz().join("Cargo.toml")).expect("Cargo.toml legible");
     let mut en_dependencias = false;
     for linea in manifiesto.lines().map(str::trim) {
         if linea.starts_with('[') {

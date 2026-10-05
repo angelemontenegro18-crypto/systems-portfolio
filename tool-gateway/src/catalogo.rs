@@ -32,7 +32,8 @@ pub fn herramientas() -> Vec<Herramienta> {
         },
         Herramienta {
             nombre: "estadisticas",
-            descripcion: "Media, mediana, desviación estándar, mínimo y máximo de una lista de números.",
+            descripcion:
+                "Media, mediana, desviación estándar, mínimo y máximo de una lista de números.",
             esquema: json!({
                 "type": "object",
                 "properties": {"valores": {"type": "array", "items": {"type": "number"}, "minItems": 1, "maxItems": 10000}},
@@ -60,7 +61,8 @@ pub fn herramientas() -> Vec<Herramienta> {
         },
         Herramienta {
             nombre: "validar_isbn",
-            descripcion: "Verifica el dígito de control de un ISBN-10 o ISBN-13 (acepta guiones y espacios).",
+            descripcion:
+                "Verifica el dígito de control de un ISBN-10 o ISBN-13 (acepta guiones y espacios).",
             esquema: json!({
                 "type": "object",
                 "properties": {"isbn": {"type": "string", "minLength": 10, "maxLength": 32}},
@@ -105,11 +107,15 @@ pub fn herramientas() -> Vec<Herramienta> {
 // para no entrar en pánico: un campo ausente es un error, no un `unwrap`.
 
 fn texto<'a>(args: &'a Value, campo: &str) -> Result<&'a str, String> {
-    args.get(campo).and_then(Value::as_str).ok_or_else(|| format!("falta `{campo}`"))
+    args.get(campo)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("falta `{campo}`"))
 }
 
 fn numero(args: &Value, campo: &str) -> Result<f64, String> {
-    args.get(campo).and_then(Value::as_f64).ok_or_else(|| format!("falta `{campo}`"))
+    args.get(campo)
+        .and_then(Value::as_f64)
+        .ok_or_else(|| format!("falta `{campo}`"))
 }
 
 fn crc32(args: &Value) -> Result<Value, String> {
@@ -117,7 +123,11 @@ fn crc32(args: &Value) -> Result<Value, String> {
     for &b in texto(args, "texto")?.as_bytes() {
         crc ^= u32::from(b);
         for _ in 0..8 {
-            crc = if crc & 1 == 1 { (crc >> 1) ^ 0xEDB8_8320 } else { crc >> 1 };
+            crc = if crc & 1 == 1 {
+                (crc >> 1) ^ 0xEDB8_8320
+            } else {
+                crc >> 1
+            };
         }
     }
     let crc = !crc;
@@ -140,7 +150,11 @@ fn estadisticas(args: &Value) -> Result<Value, String> {
     let varianza = v.iter().map(|x| (x - media).powi(2)).sum::<f64>() / n;
     v.sort_by(f64::total_cmp);
     let medio = v.len() / 2;
-    let mediana = if v.len().is_multiple_of(2) { (v[medio - 1] + v[medio]) / 2.0 } else { v[medio] };
+    let mediana = if v.len().is_multiple_of(2) {
+        (v[medio - 1] + v[medio]) / 2.0
+    } else {
+        v[medio]
+    };
     Ok(json!({
         "n": v.len(),
         "media": media,
@@ -173,7 +187,10 @@ fn convertir_temperatura(args: &Value) -> Result<Value, String> {
 }
 
 fn validar_isbn(args: &Value) -> Result<Value, String> {
-    let limpio: Vec<char> = texto(args, "isbn")?.chars().filter(|c| !matches!(c, '-' | ' ')).collect();
+    let limpio: Vec<char> = texto(args, "isbn")?
+        .chars()
+        .filter(|c| !matches!(c, '-' | ' '))
+        .collect();
     let (valido, formato) = match limpio.len() {
         10 => {
             let mut suma = 0u32;
@@ -196,7 +213,11 @@ fn validar_isbn(args: &Value) -> Result<Value, String> {
         13 => {
             let digitos: Option<Vec<u32>> = limpio.iter().map(|c| c.to_digit(10)).collect();
             let valido = digitos.is_some_and(|d| {
-                d.iter().enumerate().map(|(i, x)| if i.is_multiple_of(2) { *x } else { x * 3 }).sum::<u32>().is_multiple_of(10)
+                d.iter()
+                    .enumerate()
+                    .map(|(i, x)| if i.is_multiple_of(2) { *x } else { x * 3 })
+                    .sum::<u32>()
+                    .is_multiple_of(10)
             });
             (valido, "isbn-13")
         }
@@ -232,14 +253,26 @@ mod tests {
         let r = catalogo().expect("catálogo válido");
         let esperados = [
             // Valor de referencia calculado con zlib, no con este código.
-            ("crc32", json!({"crc32": 1_872_820_616u32, "hex": "6FA0F988"})),
-            ("contar_palabras", json!({"palabras": 3, "caracteres": 12, "lineas": 2})),
+            (
+                "crc32",
+                json!({"crc32": 1_872_820_616u32, "hex": "6FA0F988"}),
+            ),
+            (
+                "contar_palabras",
+                json!({"palabras": 3, "caracteres": 12, "lineas": 2}),
+            ),
             ("distancia", json!({"distancia": 5.0})),
-            ("validar_isbn", json!({"valido": true, "formato": "isbn-13"})),
+            (
+                "validar_isbn",
+                json!({"valido": true, "formato": "isbn-13"}),
+            ),
             ("convertir_temperatura", json!({"valor": 212.0})),
         ];
         for (nombre, esperado) in esperados {
-            let h = r.herramientas().find(|h| h.nombre == nombre).expect("existe");
+            let h = r
+                .herramientas()
+                .find(|h| h.nombre == nombre)
+                .expect("existe");
             assert_eq!(r.invocar(nombre, &h.ejemplo), Ok(esperado), "{nombre}");
         }
     }
@@ -254,12 +287,20 @@ mod tests {
 
     #[test]
     fn un_isbn_con_digito_de_control_equivocado_no_es_valido() {
-        assert_eq!(validar_isbn(&json!({"isbn": "0-306-40615-2"})), Ok(json!({"valido": true, "formato": "isbn-10"})));
-        assert_eq!(validar_isbn(&json!({"isbn": "0-306-40615-3"})), Ok(json!({"valido": false, "formato": "isbn-10"})));
+        assert_eq!(
+            validar_isbn(&json!({"isbn": "0-306-40615-2"})),
+            Ok(json!({"valido": true, "formato": "isbn-10"}))
+        );
+        assert_eq!(
+            validar_isbn(&json!({"isbn": "0-306-40615-3"})),
+            Ok(json!({"valido": false, "formato": "isbn-10"}))
+        );
     }
 
     #[test]
     fn por_debajo_del_cero_absoluto_es_un_error_de_la_herramienta() {
-        assert!(convertir_temperatura(&json!({"valor": -300, "de": "celsius", "a": "kelvin"})).is_err());
+        assert!(
+            convertir_temperatura(&json!({"valor": -300, "de": "celsius", "a": "kelvin"})).is_err()
+        );
     }
 }

@@ -56,7 +56,10 @@ fn ninguna_lectura_mezcla_dos_escrituras() {
     }
     terminado.store(true, Ordering::Relaxed);
 
-    let total: u64 = lectores.into_iter().map(|h| h.join().expect("lector sin pánico")).sum();
+    let total: u64 = lectores
+        .into_iter()
+        .map(|h| h.join().expect("lector sin pánico"))
+        .sum();
     assert!(total > 0, "los lectores tienen que haber leído");
     assert_eq!(publicador.leer().valor, Cuadruple([ESCRITURAS; 4]));
 }
@@ -80,5 +83,9 @@ fn varios_escritores_no_rompen_la_secuencia() {
     for e in escritores {
         e.join().expect("escritor sin pánico");
     }
-    assert_eq!(p.generacion(), 40_000, "cada publicación contó exactamente una vez");
+    assert_eq!(
+        p.generacion(),
+        40_000,
+        "cada publicación contó exactamente una vez"
+    );
 }

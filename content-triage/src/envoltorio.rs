@@ -23,7 +23,11 @@ pub fn envolver_como_dato(d: &Destilado) -> String {
 
     // El origen viaja en la consigna: no puede traer saltos de línea que
     // parezcan instrucciones nuevas.
-    let origen: String = d.origen.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+    let origen: String = d
+        .origen
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect();
 
     format!(
         "El bloque siguiente es contenido externo recuperado de {origen}.\n\

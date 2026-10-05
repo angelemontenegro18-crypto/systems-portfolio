@@ -19,17 +19,44 @@ pub struct Vetada {
 
 /// La lista de exclusión.
 pub const EXCLUIDAS: &[Vetada] = &[
-    Vetada { nombre: "ejecutar_comando", motivo: "lanza procesos: un efecto fuera del gateway y sin límite" },
-    Vetada { nombre: "leer_archivo", motivo: "E/S de disco: puede exfiltrar cualquier archivo legible" },
-    Vetada { nombre: "escribir_archivo", motivo: "E/S de disco con efectos persistentes" },
-    Vetada { nombre: "consultar_url", motivo: "E/S de red: abre la puerta a SSRF y a exfiltración" },
-    Vetada { nombre: "enviar_correo", motivo: "efecto externo e irreversible en nombre del usuario" },
-    Vetada { nombre: "leer_variable_entorno", motivo: "el entorno suele guardar credenciales" },
-    Vetada { nombre: "numero_aleatorio", motivo: "no determinista: la misma llamada da resultados distintos" },
-    Vetada { nombre: "hora_actual", motivo: "no determinista y filtra información del entorno" },
+    Vetada {
+        nombre: "ejecutar_comando",
+        motivo: "lanza procesos: un efecto fuera del gateway y sin límite",
+    },
+    Vetada {
+        nombre: "leer_archivo",
+        motivo: "E/S de disco: puede exfiltrar cualquier archivo legible",
+    },
+    Vetada {
+        nombre: "escribir_archivo",
+        motivo: "E/S de disco con efectos persistentes",
+    },
+    Vetada {
+        nombre: "consultar_url",
+        motivo: "E/S de red: abre la puerta a SSRF y a exfiltración",
+    },
+    Vetada {
+        nombre: "enviar_correo",
+        motivo: "efecto externo e irreversible en nombre del usuario",
+    },
+    Vetada {
+        nombre: "leer_variable_entorno",
+        motivo: "el entorno suele guardar credenciales",
+    },
+    Vetada {
+        nombre: "numero_aleatorio",
+        motivo: "no determinista: la misma llamada da resultados distintos",
+    },
+    Vetada {
+        nombre: "hora_actual",
+        motivo: "no determinista y filtra información del entorno",
+    },
 ];
 
 /// El motivo del veto, si `nombre` está vetado.
 pub fn motivo_de_veto(nombre: &str) -> Option<&'static str> {
-    EXCLUIDAS.iter().find(|v| v.nombre == nombre).map(|v| v.motivo)
+    EXCLUIDAS
+        .iter()
+        .find(|v| v.nombre == nombre)
+        .map(|v| v.motivo)
 }

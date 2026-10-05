@@ -81,7 +81,13 @@ pub struct Lectura {
 
 impl Lectura {
     fn inicial(equipo: &Equipo) -> Self {
-        Self { equipo: equipo.nombre.clone(), estado: EstadoEquipo::Sondeando, bloques: Vec::new(), tomada: None, error: None }
+        Self {
+            equipo: equipo.nombre.clone(),
+            estado: EstadoEquipo::Sondeando,
+            bloques: Vec::new(),
+            tomada: None,
+            error: None,
+        }
     }
 
     /// Cuánto hace que se tomó. `None` si todavía no hubo ningún ciclo.
@@ -105,18 +111,22 @@ impl Sondeador {
         tiempo_conexion: Duration,
         tiempo_peticion: Duration,
     ) -> Self {
-        let cache = Arc::new(Mutex::new(equipos.iter().map(Lectura::inicial).collect::<Vec<_>>()));
+        let cache = Arc::new(Mutex::new(
+            equipos.iter().map(Lectura::inicial).collect::<Vec<_>>(),
+        ));
         let (parar, senal) = mpsc::channel::<()>();
         let cache_hilo = Arc::clone(&cache);
 
         let hilo = thread::spawn(move || {
-            let mut conexiones: Vec<Option<Cliente<TcpStream>>> = equipos.iter().map(|_| None).collect();
+            let mut conexiones: Vec<Option<Cliente<TcpStream>>> =
+                equipos.iter().map(|_| None).collect();
             loop {
                 for (i, equipo) in equipos.iter().enumerate() {
                     if debe_parar(&senal) {
                         return;
                     }
-                    let lectura = leer_equipo(equipo, &mut conexiones[i], tiempo_conexion, tiempo_peticion);
+                    let lectura =
+                        leer_equipo(equipo, &mut conexiones[i], tiempo_conexion, tiempo_peticion);
                     // El lock se toma solo para reemplazar la entrada: la red ya terminó.
                     if let Some(entrada) = bloquear(&cache_hilo).get_mut(i) {
                         *entrada = lectura;
@@ -129,7 +139,11 @@ impl Sondeador {
             }
         });
 
-        Self { cache, parar: Some(parar), hilo: Some(hilo) }
+        Self {
+            cache,
+            parar: Some(parar),
+            hilo: Some(hilo),
+        }
     }
 
     /// Copia de la última lectura de cada equipo, en el orden configurado.
@@ -164,7 +178,9 @@ impl Drop for Sondeador {
 /// Un panic en otro hilo no debe dejar el caché inservible: los datos siguen
 /// siendo una lista de lecturas completas, así que se recupera el guardia.
 fn bloquear(cache: &Mutex<Vec<Lectura>>) -> MutexGuard<'_, Vec<Lectura>> {
-    cache.lock().unwrap_or_else(|envenenado| envenenado.into_inner())
+    cache
+        .lock()
+        .unwrap_or_else(|envenenado| envenenado.into_inner())
 }
 
 fn debe_parar(senal: &mpsc::Receiver<()>) -> bool {
@@ -175,7 +191,10 @@ fn debe_parar(senal: &mpsc::Receiver<()>) -> bool {
 /// desincronizado (bytes de una respuesta vieja esperando). Solo una excepción
 /// Modbus deja la conexión en un estado conocido.
 fn conexion_sigue_sana(error: &ErrorModbus) -> bool {
-    matches!(error, ErrorModbus::Trama(ErrorTrama::Excepcion { .. }) | ErrorModbus::PeticionInvalida(_))
+    matches!(
+        error,
+        ErrorModbus::Trama(ErrorTrama::Excepcion { .. }) | ErrorModbus::PeticionInvalida(_)
+    )
 }
 
 fn leer_equipo(
@@ -185,7 +204,12 @@ fn leer_equipo(
     tiempo_peticion: Duration,
 ) -> Lectura {
     if conexion.is_none() {
-        match Cliente::conectar(equipo.direccion, equipo.unidad, tiempo_conexion, tiempo_peticion) {
+        match Cliente::conectar(
+            equipo.direccion,
+            equipo.unidad,
+            tiempo_conexion,
+            tiempo_peticion,
+        ) {
             Ok(c) => *conexion = Some(c),
             Err(e) => {
                 return Lectura {
@@ -202,18 +226,23 @@ fn leer_equipo(
     let mut bloques = Vec::with_capacity(equipo.bloques.len());
     for bloque in &equipo.bloques {
         let valores = match conexion.as_mut() {
-            Some(cliente) => match cliente.leer(bloque.funcion, bloque.direccion, bloque.cantidad) {
-                Ok(v) => Ok(v),
-                Err(e) => {
-                    if !conexion_sigue_sana(&e) {
-                        *conexion = None;
+            Some(cliente) => {
+                match cliente.leer(bloque.funcion, bloque.direccion, bloque.cantidad) {
+                    Ok(v) => Ok(v),
+                    Err(e) => {
+                        if !conexion_sigue_sana(&e) {
+                            *conexion = None;
+                        }
+                        Err(e.to_string())
                     }
-                    Err(e.to_string())
                 }
-            },
+            }
             None => Err("conexión cerrada tras una falla anterior en este ciclo".to_string()),
         };
-        bloques.push(ResultadoBloque { etiqueta: bloque.etiqueta.clone(), valores });
+        bloques.push(ResultadoBloque {
+            etiqueta: bloque.etiqueta.clone(),
+            valores,
+        });
     }
 
     // Se compara primero contra el total: un equipo sin bloques configurados
@@ -227,5 +256,11 @@ fn leer_equipo(
         EstadoEquipo::Degradado
     };
 
-    Lectura { equipo: equipo.nombre.clone(), estado, bloques, tomada: Some(Instant::now()), error: None }
+    Lectura {
+        equipo: equipo.nombre.clone(),
+        estado,
+        bloques,
+        tomada: Some(Instant::now()),
+        error: None,
+    }
 }

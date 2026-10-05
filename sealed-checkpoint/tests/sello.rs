@@ -39,15 +39,31 @@ fn alterar_la_generacion_del_encabezado_no_pasa_desapercibido() {
     let mut s = sello::sellar(&clave(1), "sesion", 3, b"x").expect("sellar");
     assert_eq!(sello::generacion_sin_verificar(&s), Ok(3));
     s[5] = 99;
-    assert_eq!(sello::generacion_sin_verificar(&s), Ok(99), "se lee sin clave…");
-    assert!(matches!(sello::abrir(&clave(1), "sesion", &s), Err(ErrorSello::Autenticacion)), "…pero no abre");
+    assert_eq!(
+        sello::generacion_sin_verificar(&s),
+        Ok(99),
+        "se lee sin clave…"
+    );
+    assert!(
+        matches!(
+            sello::abrir(&clave(1), "sesion", &s),
+            Err(ErrorSello::Autenticacion)
+        ),
+        "…pero no abre"
+    );
 }
 
 #[test]
 fn clave_o_contexto_equivocados_dan_el_mismo_error() {
     let s = sello::sellar(&clave(1), "sesion", 1, b"x").expect("sellar");
-    assert!(matches!(sello::abrir(&clave(2), "sesion", &s), Err(ErrorSello::Autenticacion)));
-    assert!(matches!(sello::abrir(&clave(1), "config", &s), Err(ErrorSello::Autenticacion)));
+    assert!(matches!(
+        sello::abrir(&clave(2), "sesion", &s),
+        Err(ErrorSello::Autenticacion)
+    ));
+    assert!(matches!(
+        sello::abrir(&clave(1), "config", &s),
+        Err(ErrorSello::Autenticacion)
+    ));
 }
 
 #[test]
@@ -60,12 +76,21 @@ fn sellar_dos_veces_lo_mismo_da_sellos_distintos() {
 
 #[test]
 fn entradas_que_no_son_sellos_dan_errores_claros() {
-    assert!(matches!(sello::abrir(&clave(1), "x", b""), Err(ErrorSello::Truncado { largo: 0 })));
+    assert!(matches!(
+        sello::abrir(&clave(1), "x", b""),
+        Err(ErrorSello::Truncado { largo: 0 })
+    ));
     let mut basura = vec![0u8; LARGO_MINIMO];
-    assert!(matches!(sello::abrir(&clave(1), "x", &basura), Err(ErrorSello::NoEsUnSello)));
+    assert!(matches!(
+        sello::abrir(&clave(1), "x", &basura),
+        Err(ErrorSello::NoEsUnSello)
+    ));
     basura[..4].copy_from_slice(b"SCKP");
     basura[4] = 9;
-    assert!(matches!(sello::abrir(&clave(1), "x", &basura), Err(ErrorSello::VersionDesconocida(9))));
+    assert!(matches!(
+        sello::abrir(&clave(1), "x", &basura),
+        Err(ErrorSello::VersionDesconocida(9))
+    ));
 }
 
 #[test]

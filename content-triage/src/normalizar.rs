@@ -46,14 +46,57 @@ fn es_invisible(c: char) -> bool {
 fn homoglifo(c: char) -> Option<char> {
     Some(match c {
         // Cirílico
-        'а' => 'a', 'е' => 'e', 'о' => 'o', 'р' => 'p', 'с' => 'c', 'у' => 'y', 'х' => 'x',
-        'і' => 'i', 'ј' => 'j', 'ѕ' => 's', 'ԁ' => 'd', 'һ' => 'h', 'ӏ' => 'l', 'ԛ' => 'q', 'ԝ' => 'w',
-        'А' => 'a', 'В' => 'b', 'Е' => 'e', 'К' => 'k', 'М' => 'm', 'Н' => 'h', 'О' => 'o',
-        'Р' => 'p', 'С' => 'c', 'Т' => 't', 'Х' => 'x', 'І' => 'i', 'Ј' => 'j', 'Ѕ' => 's',
+        'а' => 'a',
+        'е' => 'e',
+        'о' => 'o',
+        'р' => 'p',
+        'с' => 'c',
+        'у' => 'y',
+        'х' => 'x',
+        'і' => 'i',
+        'ј' => 'j',
+        'ѕ' => 's',
+        'ԁ' => 'd',
+        'һ' => 'h',
+        'ӏ' => 'l',
+        'ԛ' => 'q',
+        'ԝ' => 'w',
+        'А' => 'a',
+        'В' => 'b',
+        'Е' => 'e',
+        'К' => 'k',
+        'М' => 'm',
+        'Н' => 'h',
+        'О' => 'o',
+        'Р' => 'p',
+        'С' => 'c',
+        'Т' => 't',
+        'Х' => 'x',
+        'І' => 'i',
+        'Ј' => 'j',
+        'Ѕ' => 's',
         // Griego
-        'α' => 'a', 'ο' => 'o', 'ν' => 'v', 'ρ' => 'p', 'ι' => 'i', 'κ' => 'k', 'τ' => 't',
-        'Α' => 'a', 'Β' => 'b', 'Ε' => 'e', 'Ζ' => 'z', 'Η' => 'h', 'Ι' => 'i', 'Κ' => 'k',
-        'Μ' => 'm', 'Ν' => 'n', 'Ο' => 'o', 'Ρ' => 'p', 'Τ' => 't', 'Υ' => 'y', 'Χ' => 'x',
+        'α' => 'a',
+        'ο' => 'o',
+        'ν' => 'v',
+        'ρ' => 'p',
+        'ι' => 'i',
+        'κ' => 'k',
+        'τ' => 't',
+        'Α' => 'a',
+        'Β' => 'b',
+        'Ε' => 'e',
+        'Ζ' => 'z',
+        'Η' => 'h',
+        'Ι' => 'i',
+        'Κ' => 'k',
+        'Μ' => 'm',
+        'Ν' => 'n',
+        'Ο' => 'o',
+        'Ρ' => 'p',
+        'Τ' => 't',
+        'Υ' => 'y',
+        'Χ' => 'x',
         _ => return None,
     })
 }
@@ -61,7 +104,9 @@ fn homoglifo(c: char) -> Option<char> {
 /// Minúscula sin marcas diacríticas: `Á` → `a`, `ñ` → `n`. Así una frase se
 /// busca una sola vez, con o sin tildes.
 pub fn sin_tildes(c: char) -> impl Iterator<Item = char> {
-    c.to_lowercase().flat_map(|m| std::iter::once(m).nfd()).filter(|&d| !is_combining_mark(d))
+    c.to_lowercase()
+        .flat_map(|m| std::iter::once(m).nfd())
+        .filter(|&d| !is_combining_mark(d))
 }
 
 /// Normaliza `texto` y cuenta las señales de ofuscación.
@@ -97,7 +142,12 @@ pub fn normalizar(texto: &str) -> Normalizado {
         }
     }
 
-    Normalizado { entregable, escaneable, invisibles, palabras_mezcladas }
+    Normalizado {
+        entregable,
+        escaneable,
+        invisibles,
+        palabras_mezcladas,
+    }
 }
 
 #[cfg(test)]
@@ -127,7 +177,10 @@ mod tests {
 
     #[test]
     fn la_copia_de_escaneo_no_tiene_tildes() {
-        assert_eq!(normalizar("Actúa como INSTRUCCIÓN").escaneable, "actua como instruccion");
+        assert_eq!(
+            normalizar("Actúa como INSTRUCCIÓN").escaneable,
+            "actua como instruccion"
+        );
     }
 
     #[test]

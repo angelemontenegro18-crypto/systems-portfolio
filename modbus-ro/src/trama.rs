@@ -79,7 +79,13 @@ impl Peticion {
         if u32::from(direccion) + u32::from(cantidad) > 65_536 {
             return Err("el rango pedido se pasa del final del espacio de direcciones");
         }
-        Ok(Self { transaccion, unidad, funcion, direccion, cantidad })
+        Ok(Self {
+            transaccion,
+            unidad,
+            funcion,
+            direccion,
+            cantidad,
+        })
     }
 
     /// Identificador de transacción.
@@ -114,8 +120,18 @@ impl Peticion {
         let cant = self.cantidad.to_be_bytes();
         // largo = unidad (1) + PDU (5)
         [
-            tx[0], tx[1], 0, 0, 0, 6, self.unidad,
-            self.funcion.codigo(), dir[0], dir[1], cant[0], cant[1],
+            tx[0],
+            tx[1],
+            0,
+            0,
+            0,
+            6,
+            self.unidad,
+            self.funcion.codigo(),
+            dir[0],
+            dir[1],
+            cant[0],
+            cant[1],
         ]
     }
 }
@@ -197,27 +213,55 @@ impl ErrorTrama {
 impl fmt::Display for ErrorTrama {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Truncada { esperados, recibidos } => {
-                write!(f, "trama truncada: se esperaban {esperados} bytes y llegaron {recibidos}")
+            Self::Truncada {
+                esperados,
+                recibidos,
+            } => {
+                write!(
+                    f,
+                    "trama truncada: se esperaban {esperados} bytes y llegaron {recibidos}"
+                )
             }
-            Self::SobranBytes { esperados, recibidos } => {
-                write!(f, "sobran bytes: se esperaban {esperados} y llegaron {recibidos}")
+            Self::SobranBytes {
+                esperados,
+                recibidos,
+            } => {
+                write!(
+                    f,
+                    "sobran bytes: se esperaban {esperados} y llegaron {recibidos}"
+                )
             }
             Self::Protocolo(p) => write!(f, "identificador de protocolo {p}: no es Modbus"),
             Self::LargoFueraDeRango(l) => write!(f, "campo de largo {l} fuera de rango"),
             Self::OtraTransaccion { esperada, recibida } => {
-                write!(f, "respuesta de otra transacción: se esperaba {esperada} y llegó {recibida}")
+                write!(
+                    f,
+                    "respuesta de otra transacción: se esperaba {esperada} y llegó {recibida}"
+                )
             }
             Self::OtraUnidad { esperada, recibida } => {
-                write!(f, "respuesta de otra unidad: se consultó {esperada} y contestó {recibida}")
+                write!(
+                    f,
+                    "respuesta de otra unidad: se consultó {esperada} y contestó {recibida}"
+                )
             }
             Self::FuncionInesperada { esperada, recibida } => {
-                write!(f, "función inesperada: se envió {esperada} y volvió {recibida}")
+                write!(
+                    f,
+                    "función inesperada: se envió {esperada} y volvió {recibida}"
+                )
             }
             Self::Excepcion { codigo } => {
-                write!(f, "excepción Modbus {codigo}: {}", Self::nombre_excepcion(*codigo))
+                write!(
+                    f,
+                    "excepción Modbus {codigo}: {}",
+                    Self::nombre_excepcion(*codigo)
+                )
             }
-            Self::ConteoDeBytes { esperado, anunciado } => {
+            Self::ConteoDeBytes {
+                esperado,
+                anunciado,
+            } => {
                 write!(f, "conteo de bytes {anunciado}, se esperaban {esperado}")
             }
         }
@@ -236,7 +280,9 @@ pub fn largo_pdu(cabecera: &[u8; LARGO_MBAP]) -> Result<usize, ErrorTrama> {
     }
     let largo = u16::from_be_bytes([cabecera[4], cabecera[5]]);
     // El largo cuenta la unidad (1 byte) más el PDU, que mide entre 2 y 253.
-    let pdu = usize::from(largo).checked_sub(1).ok_or(ErrorTrama::LargoFueraDeRango(largo))?;
+    let pdu = usize::from(largo)
+        .checked_sub(1)
+        .ok_or(ErrorTrama::LargoFueraDeRango(largo))?;
     if !(2..=MAX_PDU).contains(&pdu) {
         return Err(ErrorTrama::LargoFueraDeRango(largo));
     }
@@ -249,23 +295,38 @@ pub fn decodificar_respuesta(peticion: &Peticion, trama: &[u8]) -> Result<Vec<u1
     let cabecera: &[u8; LARGO_MBAP] = trama
         .get(..LARGO_MBAP)
         .and_then(|c| c.try_into().ok())
-        .ok_or(ErrorTrama::Truncada { esperados: LARGO_MBAP, recibidos: trama.len() })?;
+        .ok_or(ErrorTrama::Truncada {
+            esperados: LARGO_MBAP,
+            recibidos: trama.len(),
+        })?;
 
     let pdu_largo = largo_pdu(cabecera)?;
     let total = LARGO_MBAP + pdu_largo;
     if trama.len() < total {
-        return Err(ErrorTrama::Truncada { esperados: total, recibidos: trama.len() });
+        return Err(ErrorTrama::Truncada {
+            esperados: total,
+            recibidos: trama.len(),
+        });
     }
     if trama.len() > total {
-        return Err(ErrorTrama::SobranBytes { esperados: total, recibidos: trama.len() });
+        return Err(ErrorTrama::SobranBytes {
+            esperados: total,
+            recibidos: trama.len(),
+        });
     }
 
     let transaccion = u16::from_be_bytes([cabecera[0], cabecera[1]]);
     if transaccion != peticion.transaccion {
-        return Err(ErrorTrama::OtraTransaccion { esperada: peticion.transaccion, recibida: transaccion });
+        return Err(ErrorTrama::OtraTransaccion {
+            esperada: peticion.transaccion,
+            recibida: transaccion,
+        });
     }
     if cabecera[6] != peticion.unidad {
-        return Err(ErrorTrama::OtraUnidad { esperada: peticion.unidad, recibida: cabecera[6] });
+        return Err(ErrorTrama::OtraUnidad {
+            esperada: peticion.unidad,
+            recibida: cabecera[6],
+        });
     }
 
     let pdu = &trama[LARGO_MBAP..];
@@ -274,7 +335,10 @@ pub fn decodificar_respuesta(peticion: &Peticion, trama: &[u8]) -> Result<Vec<u1
 
     if recibida == esperada | BIT_EXCEPCION {
         if pdu.len() != 2 {
-            return Err(ErrorTrama::SobranBytes { esperados: LARGO_MBAP + 2, recibidos: trama.len() });
+            return Err(ErrorTrama::SobranBytes {
+                esperados: LARGO_MBAP + 2,
+                recibidos: trama.len(),
+            });
         }
         return Err(ErrorTrama::Excepcion { codigo: pdu[1] });
     }
@@ -285,13 +349,22 @@ pub fn decodificar_respuesta(peticion: &Peticion, trama: &[u8]) -> Result<Vec<u1
     let datos_esperados = usize::from(peticion.cantidad) * 2;
     let anunciado = pdu[1];
     if usize::from(anunciado) != datos_esperados {
-        return Err(ErrorTrama::ConteoDeBytes { esperado: datos_esperados, anunciado });
+        return Err(ErrorTrama::ConteoDeBytes {
+            esperado: datos_esperados,
+            anunciado,
+        });
     }
     if pdu.len() != 2 + datos_esperados {
-        return Err(ErrorTrama::Truncada { esperados: LARGO_MBAP + 2 + datos_esperados, recibidos: trama.len() });
+        return Err(ErrorTrama::Truncada {
+            esperados: LARGO_MBAP + 2 + datos_esperados,
+            recibidos: trama.len(),
+        });
     }
 
-    Ok(pdu[2..].chunks_exact(2).map(|par| u16::from_be_bytes([par[0], par[1]])).collect())
+    Ok(pdu[2..]
+        .chunks_exact(2)
+        .map(|par| u16::from_be_bytes([par[0], par[1]]))
+        .collect())
 }
 
 #[cfg(test)]
@@ -320,7 +393,10 @@ mod tests {
         // Transacción 0x1234 · protocolo 0 · largo 6 · unidad 7 · función 3 ·
         // dirección 100 · cantidad 2. En decimal donde un literal hexadecimal
         // se confundiría con un código de escritura (ver tests/solo_lectura.rs).
-        assert_eq!(peticion().codificar(), [0x12, 0x34, 0, 0, 0, 6, 7, 3, 0, 100, 0, 2]);
+        assert_eq!(
+            peticion().codificar(),
+            [0x12, 0x34, 0, 0, 0, 6, 7, 3, 0, 100, 0, 2]
+        );
     }
 
     #[test]
@@ -332,7 +408,10 @@ mod tests {
     #[test]
     fn una_excepcion_se_reporta_con_su_codigo() {
         let r = respuesta(0x1234, 7, &[0x83, 2]);
-        assert_eq!(decodificar_respuesta(&peticion(), &r), Err(ErrorTrama::Excepcion { codigo: 2 }));
+        assert_eq!(
+            decodificar_respuesta(&peticion(), &r),
+            Err(ErrorTrama::Excepcion { codigo: 2 })
+        );
     }
 
     #[test]
@@ -357,17 +436,32 @@ mod tests {
         ));
         let mut corta = respuesta(0x1234, 7, &buena);
         corta.pop();
-        assert!(matches!(decodificar_respuesta(&p, &corta), Err(ErrorTrama::Truncada { .. })));
+        assert!(matches!(
+            decodificar_respuesta(&p, &corta),
+            Err(ErrorTrama::Truncada { .. })
+        ));
         let mut larga = respuesta(0x1234, 7, &buena);
         larga.push(0);
-        assert!(matches!(decodificar_respuesta(&p, &larga), Err(ErrorTrama::SobranBytes { .. })));
+        assert!(matches!(
+            decodificar_respuesta(&p, &larga),
+            Err(ErrorTrama::SobranBytes { .. })
+        ));
     }
 
     #[test]
     fn la_cabecera_rechaza_protocolo_y_largo_invalidos() {
-        assert_eq!(largo_pdu(&[0, 1, 0, 1, 0, 6, 1]), Err(ErrorTrama::Protocolo(1)));
-        assert_eq!(largo_pdu(&[0, 1, 0, 0, 0, 1, 1]), Err(ErrorTrama::LargoFueraDeRango(1)));
-        assert_eq!(largo_pdu(&[0, 1, 0, 0, 1, 0, 1]), Err(ErrorTrama::LargoFueraDeRango(256)));
+        assert_eq!(
+            largo_pdu(&[0, 1, 0, 1, 0, 6, 1]),
+            Err(ErrorTrama::Protocolo(1))
+        );
+        assert_eq!(
+            largo_pdu(&[0, 1, 0, 0, 0, 1, 1]),
+            Err(ErrorTrama::LargoFueraDeRango(1))
+        );
+        assert_eq!(
+            largo_pdu(&[0, 1, 0, 0, 1, 0, 1]),
+            Err(ErrorTrama::LargoFueraDeRango(256))
+        );
         assert_eq!(largo_pdu(&[0, 1, 0, 0, 0, 7, 1]), Ok(6));
     }
 

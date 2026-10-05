@@ -90,7 +90,11 @@ impl Cliente<TcpStream> {
 impl<S: Read + Write> Cliente<S> {
     /// Envuelve un flujo ya abierto.
     pub fn sobre(flujo: S, unidad: u8) -> Self {
-        Self { flujo, unidad, siguiente_transaccion: 1 }
+        Self {
+            flujo,
+            unidad,
+            siguiente_transaccion: 1,
+        }
     }
 
     /// Unidad a la que habla este cliente.
@@ -99,7 +103,12 @@ impl<S: Read + Write> Cliente<S> {
     }
 
     /// Lee `cantidad` registros desde `direccion`.
-    pub fn leer(&mut self, funcion: Funcion, direccion: u16, cantidad: u16) -> Result<Vec<u16>, ErrorModbus> {
+    pub fn leer(
+        &mut self,
+        funcion: Funcion,
+        direccion: u16,
+        cantidad: u16,
+    ) -> Result<Vec<u16>, ErrorModbus> {
         let transaccion = self.siguiente_transaccion;
         self.siguiente_transaccion = self.siguiente_transaccion.wrapping_add(1);
 
@@ -122,7 +131,11 @@ impl<S: Read + Write> Cliente<S> {
     }
 
     /// Atajo para registros de retención.
-    pub fn leer_retencion(&mut self, direccion: u16, cantidad: u16) -> Result<Vec<u16>, ErrorModbus> {
+    pub fn leer_retencion(
+        &mut self,
+        direccion: u16,
+        cantidad: u16,
+    ) -> Result<Vec<u16>, ErrorModbus> {
         self.leer(Funcion::RegistrosRetencion, direccion, cantidad)
     }
 

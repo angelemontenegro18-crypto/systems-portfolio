@@ -64,7 +64,9 @@ impl Robots {
 
         for linea in texto.lines() {
             let linea = linea.split('#').next().unwrap_or("").trim();
-            let Some((clave, valor)) = linea.split_once(':') else { continue };
+            let Some((clave, valor)) = linea.split_once(':') else {
+                continue;
+            };
             let valor = valor.trim();
             match clave.trim().to_ascii_lowercase().as_str() {
                 "user-agent" => {
@@ -80,7 +82,10 @@ impl Robots {
                     // Un `Disallow:` vacío significa "nada prohibido": no es una regla.
                     if !valor.is_empty() {
                         let permite = clave.trim().eq_ignore_ascii_case("allow");
-                        actual.reglas.push(Regla { permite, patron: normalizar(valor) });
+                        actual.reglas.push(Regla {
+                            permite,
+                            patron: normalizar(valor),
+                        });
                     }
                 }
                 "crawl-delay" if !actual.agentes.is_empty() => {
@@ -110,7 +115,10 @@ impl Robots {
         Self {
             grupos: vec![Grupo {
                 agentes: vec!["*".into()],
-                reglas: vec![Regla { permite: false, patron: "/".into() }],
+                reglas: vec![Regla {
+                    permite: false,
+                    patron: "/".into(),
+                }],
                 crawl_delay: None,
             }],
         }
@@ -119,14 +127,24 @@ impl Robots {
     /// Las reglas que le tocan al agente con este token de producto.
     pub fn politica_para(&self, token: &str) -> Politica {
         let token = token.to_ascii_lowercase();
-        let propios: Vec<&Grupo> = self.grupos.iter().filter(|g| g.agentes.contains(&token)).collect();
+        let propios: Vec<&Grupo> = self
+            .grupos
+            .iter()
+            .filter(|g| g.agentes.contains(&token))
+            .collect();
         let elegidos = if propios.is_empty() {
-            self.grupos.iter().filter(|g| g.agentes.iter().any(|a| a == "*")).collect()
+            self.grupos
+                .iter()
+                .filter(|g| g.agentes.iter().any(|a| a == "*"))
+                .collect()
         } else {
             propios
         };
         Politica {
-            reglas: elegidos.iter().flat_map(|g| g.reglas.iter().cloned()).collect(),
+            reglas: elegidos
+                .iter()
+                .flat_map(|g| g.reglas.iter().cloned())
+                .collect(),
             crawl_delay: elegidos
                 .iter()
                 .filter_map(|g| g.crawl_delay)
@@ -141,7 +159,10 @@ impl Politica {
     pub fn decidir(&self, ruta: &str) -> Decision {
         let ruta = normalizar(ruta);
         if ruta == "/robots.txt" {
-            return Decision { permitida: true, regla: None };
+            return Decision {
+                permitida: true,
+                regla: None,
+            };
         }
         let ganadora = self
             .reglas
@@ -152,16 +173,28 @@ impl Politica {
         match ganadora {
             Some(r) => Decision {
                 permitida: r.permite,
-                regla: Some(format!("{}: {}", if r.permite { "Allow" } else { "Disallow" }, r.patron)),
+                regla: Some(format!(
+                    "{}: {}",
+                    if r.permite { "Allow" } else { "Disallow" },
+                    r.patron
+                )),
             },
-            None => Decision { permitida: true, regla: None },
+            None => Decision {
+                permitida: true,
+                regla: None,
+            },
         }
     }
 }
 
 /// El token de producto de una línea `User-agent`: el nombre sin la versión.
 fn token_de(valor: &str) -> String {
-    valor.split('/').next().unwrap_or("").trim().to_ascii_lowercase()
+    valor
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase()
 }
 
 fn recortar(texto: &str, max: usize) -> &str {
@@ -209,7 +242,9 @@ fn coincide(patron: &str, ruta: &str) -> bool {
         None => (patron, false),
     };
     let partes: Vec<&str> = patron.split('*').collect();
-    let Some((primera, resto)) = partes.split_first() else { return false };
+    let Some((primera, resto)) = partes.split_first() else {
+        return false;
+    };
     if !ruta.starts_with(primera) {
         return false;
     }

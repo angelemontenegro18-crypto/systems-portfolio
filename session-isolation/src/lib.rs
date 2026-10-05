@@ -51,6 +51,9 @@ pub struct Receta {
 impl Receta {
     /// Una receta con argumentos.
     pub fn nueva(programa: impl Into<PathBuf>, args: &[&str]) -> Self {
-        Self { programa: programa.into(), args: args.iter().map(|a| a.to_string()).collect() }
+        Self {
+            programa: programa.into(),
+            args: args.iter().map(|a| a.to_string()).collect(),
+        }
     }
 }

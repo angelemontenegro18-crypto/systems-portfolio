@@ -62,7 +62,10 @@ pub enum ErrorSello {
 impl fmt::Display for ErrorSello {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Truncado { largo } => write!(f, "sello truncado: {largo} bytes, el mínimo es {LARGO_MINIMO}"),
+            Self::Truncado { largo } => write!(
+                f,
+                "sello truncado: {largo} bytes, el mínimo es {LARGO_MINIMO}"
+            ),
             Self::NoEsUnSello => write!(f, "no es un sello de este formato"),
             Self::VersionDesconocida(v) => write!(f, "versión de formato desconocida: {v}"),
             Self::Autenticacion => {
@@ -87,7 +90,10 @@ pub struct Abierto {
 impl fmt::Debug for Abierto {
     // Nunca muestra los datos: podrían ser secretos.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Abierto").field("generacion", &self.generacion).field("bytes", &self.datos.len()).finish()
+        f.debug_struct("Abierto")
+            .field("generacion", &self.generacion)
+            .field("bytes", &self.datos.len())
+            .finish()
     }
 }
 
@@ -114,14 +120,25 @@ fn cifrador(clave: &Clave) -> XChaCha20Poly1305 {
 }
 
 /// Sella `datos` para `contexto` en la `generacion` dada.
-pub fn sellar(clave: &Clave, contexto: &str, generacion: u64, datos: &[u8]) -> Result<Vec<u8>, ErrorSello> {
+pub fn sellar(
+    clave: &Clave,
+    contexto: &str,
+    generacion: u64,
+    datos: &[u8],
+) -> Result<Vec<u8>, ErrorSello> {
     let encabezado = encabezado(generacion);
     let mut nonce = [0u8; LARGO_NONCE];
     getrandom::getrandom(&mut nonce).map_err(|_| ErrorSello::Entropia)?;
 
     let aad = datos_asociados(&encabezado, contexto);
     let cifrado = cifrador(clave)
-        .encrypt(XNonce::from_slice(&nonce), Payload { msg: datos, aad: &aad })
+        .encrypt(
+            XNonce::from_slice(&nonce),
+            Payload {
+                msg: datos,
+                aad: &aad,
+            },
+        )
         .map_err(|_| ErrorSello::Cifrado)?;
 
     let mut sello = Vec::with_capacity(LARGO_ENCABEZADO + LARGO_NONCE + cifrado.len());
@@ -160,7 +177,16 @@ pub fn abrir(clave: &Clave, contexto: &str, sello: &[u8]) -> Result<Abierto, Err
 
     let aad = datos_asociados(encabezado, contexto);
     let datos = cifrador(clave)
-        .decrypt(XNonce::from_slice(nonce), Payload { msg: cifrado, aad: &aad })
+        .decrypt(
+            XNonce::from_slice(nonce),
+            Payload {
+                msg: cifrado,
+                aad: &aad,
+            },
+        )
         .map_err(|_| ErrorSello::Autenticacion)?;
-    Ok(Abierto { generacion, datos: Zeroizing::new(datos) })
+    Ok(Abierto {
+        generacion,
+        datos: Zeroizing::new(datos),
+    })
 }

@@ -33,7 +33,12 @@ fn almacen(dir: &Dir) -> Almacen {
 fn archivos(dir: &Path) -> Vec<String> {
     let mut v: Vec<String> = fs::read_dir(dir)
         .expect("listar")
-        .map(|e| e.expect("entrada").file_name().to_string_lossy().into_owned())
+        .map(|e| {
+            e.expect("entrada")
+                .file_name()
+                .to_string_lossy()
+                .into_owned()
+        })
         .collect();
     v.sort();
     v
@@ -43,7 +48,10 @@ fn archivos(dir: &Path) -> Vec<String> {
 fn guardar_y_cargar() {
     let d = Dir::nuevo("basico");
     let a = almacen(&d);
-    assert!(a.cargar("sesion").expect("cargar").is_none(), "sin checkpoint todavía");
+    assert!(
+        a.cargar("sesion").expect("cargar").is_none(),
+        "sin checkpoint todavía"
+    );
     a.guardar("sesion", 1, b"v1").expect("guardar");
     a.guardar("sesion", 2, b"v2").expect("guardar");
     let c = a.cargar("sesion").expect("cargar").expect("existe");
@@ -55,7 +63,8 @@ fn no_quedan_temporales_despues_de_guardar() {
     let d = Dir::nuevo("temporales");
     let a = almacen(&d);
     for g in 1..=20 {
-        a.guardar("sesion", g, format!("estado {g}").as_bytes()).expect("guardar");
+        a.guardar("sesion", g, format!("estado {g}").as_bytes())
+            .expect("guardar");
     }
     assert_eq!(archivos(&d.0), vec!["sesion.sck".to_string()]);
 }
@@ -70,7 +79,8 @@ fn un_temporal_huerfano_de_una_caida_no_afecta_la_carga() {
 
     let c = a.cargar("sesion").expect("cargar").expect("existe");
     assert_eq!(c.datos.as_slice(), b"confirmado");
-    a.guardar("sesion", 2, b"siguiente").expect("guardar con un huérfano presente");
+    a.guardar("sesion", 2, b"siguiente")
+        .expect("guardar con un huérfano presente");
 }
 
 #[test]
@@ -78,9 +88,27 @@ fn los_nombres_que_podrian_escapar_del_directorio_se_rechazan() {
     let d = Dir::nuevo("nombres");
     let a = almacen(&d);
     let largo = "a".repeat(65);
-    for malo in ["", "../fuera", "a/b", "a\\b", "Mayus", ".oculto", "con espacio", largo.as_str()] {
-        assert!(matches!(a.guardar(malo, 1, b"x"), Err(ErrorAlmacen::NombreInvalido(_))), "`{malo}`");
-        assert!(matches!(a.cargar(malo), Err(ErrorAlmacen::NombreInvalido(_))), "`{malo}`");
+    for malo in [
+        "",
+        "../fuera",
+        "a/b",
+        "a\\b",
+        "Mayus",
+        ".oculto",
+        "con espacio",
+        largo.as_str(),
+    ] {
+        assert!(
+            matches!(
+                a.guardar(malo, 1, b"x"),
+                Err(ErrorAlmacen::NombreInvalido(_))
+            ),
+            "`{malo}`"
+        );
+        assert!(
+            matches!(a.cargar(malo), Err(ErrorAlmacen::NombreInvalido(_))),
+            "`{malo}`"
+        );
     }
     assert!(archivos(&d.0).is_empty(), "no se escribió nada");
 }
@@ -92,11 +120,21 @@ fn una_generacion_que_no_avanza_se_rechaza_al_guardar() {
     a.guardar("sesion", 5, b"cinco").expect("guardar");
     for g in [5, 3, 0] {
         match a.guardar("sesion", g, b"viejo") {
-            Err(ErrorAlmacen::GeneracionNoAvanza { existente: 5, pedida }) => assert_eq!(pedida, g),
+            Err(ErrorAlmacen::GeneracionNoAvanza {
+                existente: 5,
+                pedida,
+            }) => assert_eq!(pedida, g),
             otro => panic!("generación {g}: {otro:?}"),
         }
     }
-    assert_eq!(a.cargar("sesion").expect("cargar").expect("existe").datos.as_slice(), b"cinco");
+    assert_eq!(
+        a.cargar("sesion")
+            .expect("cargar")
+            .expect("existe")
+            .datos
+            .as_slice(),
+        b"cinco"
+    );
 }
 
 #[test]
@@ -110,9 +148,19 @@ fn reemplazar_el_archivo_por_una_copia_vieja_se_detecta_con_la_minima() {
 
     // Un atacante con acceso al disco repone la copia vieja: sigue siendo auténtica.
     fs::write(&ruta, &copia_vieja).expect("reponer");
-    assert_eq!(a.cargar("sesion").expect("cargar").expect("existe").generacion, 1, "el sello no lo delata…");
+    assert_eq!(
+        a.cargar("sesion")
+            .expect("cargar")
+            .expect("existe")
+            .generacion,
+        1,
+        "el sello no lo delata…"
+    );
     match a.cargar_desde("sesion", 2) {
-        Err(ErrorAlmacen::Retroceso { encontrada: 1, minima: 2 }) => {}
+        Err(ErrorAlmacen::Retroceso {
+            encontrada: 1,
+            minima: 2,
+        }) => {}
         otro => panic!("…pero la mínima conocida sí: {otro:?}"),
     }
 }
@@ -122,8 +170,15 @@ fn un_checkpoint_renombrado_no_abre_con_otro_nombre() {
     let d = Dir::nuevo("renombrado");
     let a = almacen(&d);
     a.guardar("sesion", 1, b"de sesion").expect("guardar");
-    fs::copy(a.ruta_de("sesion").expect("ruta"), a.ruta_de("config").expect("ruta")).expect("copiar");
-    assert!(matches!(a.cargar("config"), Err(ErrorAlmacen::Sello(ErrorSello::Autenticacion))));
+    fs::copy(
+        a.ruta_de("sesion").expect("ruta"),
+        a.ruta_de("config").expect("ruta"),
+    )
+    .expect("copiar");
+    assert!(matches!(
+        a.cargar("config"),
+        Err(ErrorAlmacen::Sello(ErrorSello::Autenticacion))
+    ));
 }
 
 #[test]
@@ -137,10 +192,24 @@ fn un_archivo_corrupto_da_error_y_se_puede_reemplazar() {
     bytes[ultimo] ^= 0xFF;
     fs::write(&ruta, &bytes).expect("corromper");
 
-    assert!(matches!(a.cargar("sesion"), Err(ErrorAlmacen::Sello(ErrorSello::Autenticacion))), "error, nunca basura");
+    assert!(
+        matches!(
+            a.cargar("sesion"),
+            Err(ErrorAlmacen::Sello(ErrorSello::Autenticacion))
+        ),
+        "error, nunca basura"
+    );
     // No se puede exigir que avance sobre algo ilegible: se recupera escribiendo de nuevo.
-    a.guardar("sesion", 1, b"recuperado").expect("reemplazar el corrupto");
-    assert_eq!(a.cargar("sesion").expect("cargar").expect("existe").datos.as_slice(), b"recuperado");
+    a.guardar("sesion", 1, b"recuperado")
+        .expect("reemplazar el corrupto");
+    assert_eq!(
+        a.cargar("sesion")
+            .expect("cargar")
+            .expect("existe")
+            .datos
+            .as_slice(),
+        b"recuperado"
+    );
 }
 
 #[test]
@@ -148,5 +217,8 @@ fn con_otra_clave_no_abre() {
     let d = Dir::nuevo("otra-clave");
     almacen(&d).guardar("sesion", 1, b"x").expect("guardar");
     let ajeno = Almacen::abrir(&d.0, Clave::desde_bytes([8; 32])).expect("abrir");
-    assert!(matches!(ajeno.cargar("sesion"), Err(ErrorAlmacen::Sello(ErrorSello::Autenticacion))));
+    assert!(matches!(
+        ajeno.cargar("sesion"),
+        Err(ErrorAlmacen::Sello(ErrorSello::Autenticacion))
+    ));
 }

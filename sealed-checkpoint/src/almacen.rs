@@ -62,11 +62,16 @@ pub enum ErrorAlmacen {
 impl fmt::Display for ErrorAlmacen {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NombreInvalido(n) => write!(f, "nombre inválido `{n}`: se admite [a-z0-9_-], de 1 a 64"),
+            Self::NombreInvalido(n) => {
+                write!(f, "nombre inválido `{n}`: se admite [a-z0-9_-], de 1 a 64")
+            }
             Self::Io(e) => write!(f, "falla de disco: {e}"),
             Self::Sello(e) => write!(f, "{e}"),
             Self::GeneracionNoAvanza { existente, pedida } => {
-                write!(f, "la generación {pedida} no avanza sobre la guardada ({existente})")
+                write!(
+                    f,
+                    "la generación {pedida} no avanza sobre la guardada ({existente})"
+                )
             }
             Self::Retroceso { encontrada, minima } => {
                 write!(f, "el checkpoint retrocedió: generación {encontrada}, la mínima conocida es {minima}")
@@ -103,7 +108,9 @@ static CONTADOR: AtomicU64 = AtomicU64::new(0);
 
 fn validar_nombre(nombre: &str) -> Result<(), ErrorAlmacen> {
     let ok = (1..=64).contains(&nombre.len())
-        && nombre.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-');
+        && nombre
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-');
     if ok {
         Ok(())
     } else {
@@ -133,10 +140,14 @@ impl Almacen {
         let destino = self.ruta_de(nombre)?;
         if let Some(existente) = self.leer(nombre, &destino).ok().flatten() {
             if generacion <= existente.generacion {
-                return Err(ErrorAlmacen::GeneracionNoAvanza { existente: existente.generacion, pedida: generacion });
+                return Err(ErrorAlmacen::GeneracionNoAvanza {
+                    existente: existente.generacion,
+                    pedida: generacion,
+                });
             }
         }
-        let sellado = sello::sellar(&self.clave, nombre, generacion, datos).map_err(ErrorAlmacen::Sello)?;
+        let sellado =
+            sello::sellar(&self.clave, nombre, generacion, datos).map_err(ErrorAlmacen::Sello)?;
         escribir_atomico(&self.dir, nombre, &destino, &sellado)?;
         Ok(())
     }
@@ -150,7 +161,10 @@ impl Almacen {
     /// Como [`Almacen::cargar`], pero rechaza un checkpoint anterior a `minima`.
     pub fn cargar_desde(&self, nombre: &str, minima: u64) -> Result<Option<Abierto>, ErrorAlmacen> {
         match self.cargar(nombre)? {
-            Some(a) if a.generacion < minima => Err(ErrorAlmacen::Retroceso { encontrada: a.generacion, minima }),
+            Some(a) if a.generacion < minima => Err(ErrorAlmacen::Retroceso {
+                encontrada: a.generacion,
+                minima,
+            }),
             otro => Ok(otro),
         }
     }
@@ -162,7 +176,9 @@ impl Almacen {
             Err(e) => return Err(e.into()),
         };
         // El nombre es el contexto del sello: un archivo renombrado no abre.
-        sello::abrir(&self.clave, nombre, &bytes).map(Some).map_err(ErrorAlmacen::Sello)
+        sello::abrir(&self.clave, nombre, &bytes)
+            .map(Some)
+            .map_err(ErrorAlmacen::Sello)
     }
 }
 
@@ -171,7 +187,10 @@ fn escribir_atomico(dir: &Path, nombre: &str, destino: &Path, bytes: &[u8]) -> i
     let temporal = dir.join(format!(".{nombre}.{}.{n}.tmp", std::process::id()));
 
     let resultado = (|| {
-        let mut f = OpenOptions::new().write(true).create_new(true).open(&temporal)?;
+        let mut f = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporal)?;
         f.write_all(bytes)?;
         f.sync_all()?;
         drop(f);

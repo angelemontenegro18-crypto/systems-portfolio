@@ -37,7 +37,10 @@ pub struct Limites {
 
 impl Default for Limites {
     fn default() -> Self {
-        Self { tiempo: Duration::from_secs(5), max_bytes_salida: 1 << 20 }
+        Self {
+            tiempo: Duration::from_secs(5),
+            max_bytes_salida: 1 << 20,
+        }
     }
 }
 
@@ -80,7 +83,9 @@ impl fmt::Display for ErrorIpc {
             Self::Lanzar(e) => write!(f, "no se pudo lanzar el proceso: {e}"),
             Self::Leer(e) => write!(f, "falla leyendo la salida: {e}"),
             Self::Timeout { tiempo, pid } => write!(f, "el proceso {pid} no terminó en {tiempo:?}"),
-            Self::SalidaExcedida { limite } => write!(f, "el proceso escribió más de {limite} bytes"),
+            Self::SalidaExcedida { limite } => {
+                write!(f, "el proceso escribió más de {limite} bytes")
+            }
             Self::Termino { codigo, stderr } => {
                 match codigo {
                     Some(c) => write!(f, "el proceso terminó con código {c}")?,
@@ -139,13 +144,19 @@ where
             let _ = enviar_stdout.send(leer_con_tope(stdout, tope));
         });
     }
-    let lector_stderr = hijo.stderr.take().map(|stderr| thread::spawn(move || leer_recortado(stderr, MAX_STDERR)));
+    let lector_stderr = hijo
+        .stderr
+        .take()
+        .map(|stderr| thread::spawn(move || leer_recortado(stderr, MAX_STDERR)));
 
-    let salida = match recibir_stdout.recv_timeout(vence.saturating_duration_since(Instant::now())) {
+    let salida = match recibir_stdout.recv_timeout(vence.saturating_duration_since(Instant::now()))
+    {
         Ok(Ok(bytes)) => bytes,
         Ok(Err(FallaLectura::Excedida)) => {
             terminar(&mut hijo);
-            return Err(ErrorIpc::SalidaExcedida { limite: limites.max_bytes_salida });
+            return Err(ErrorIpc::SalidaExcedida {
+                limite: limites.max_bytes_salida,
+            });
         }
         Ok(Err(FallaLectura::Io(e))) => {
             terminar(&mut hijo);
@@ -153,7 +164,10 @@ where
         }
         Err(_) => {
             terminar(&mut hijo);
-            return Err(ErrorIpc::Timeout { tiempo: limites.tiempo, pid });
+            return Err(ErrorIpc::Timeout {
+                tiempo: limites.tiempo,
+                pid,
+            });
         }
     };
 
@@ -161,12 +175,20 @@ where
     // se le da lo que quede del plazo para terminar.
     let Some(estado) = esperar_hasta(&mut hijo, vence) else {
         terminar(&mut hijo);
-        return Err(ErrorIpc::Timeout { tiempo: limites.tiempo, pid });
+        return Err(ErrorIpc::Timeout {
+            tiempo: limites.tiempo,
+            pid,
+        });
     };
 
     if !estado.success() {
-        let stderr = lector_stderr.and_then(|h| h.join().ok()).unwrap_or_default();
-        return Err(ErrorIpc::Termino { codigo: estado.code(), stderr });
+        let stderr = lector_stderr
+            .and_then(|h| h.join().ok())
+            .unwrap_or_default();
+        return Err(ErrorIpc::Termino {
+            codigo: estado.code(),
+            stderr,
+        });
     }
     serde_json::from_slice(&salida).map_err(ErrorIpc::Respuesta)
 }

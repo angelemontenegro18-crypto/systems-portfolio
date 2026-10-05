@@ -48,7 +48,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let direccion = equipo_simulado()?;
     println!("equipo simulado en {direccion}\n");
 
-    let mut cliente = Cliente::conectar(direccion, 1, Duration::from_secs(1), Duration::from_secs(1))?;
+    let mut cliente =
+        Cliente::conectar(direccion, 1, Duration::from_secs(1), Duration::from_secs(1))?;
     let valores = cliente.leer(Funcion::RegistrosRetencion, 0, 3)?;
     println!("lectura directa, 3 registros de retención: {valores:?}");
 

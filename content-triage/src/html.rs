@@ -21,17 +21,41 @@ pub struct Extraido {
 }
 
 /// Elementos cuyo contenido nunca es texto para el lector.
-const SIN_TEXTO: &[&str] = &["head", "script", "style", "noscript", "template", "svg", "iframe"];
+const SIN_TEXTO: &[&str] = &[
+    "head", "script", "style", "noscript", "template", "svg", "iframe",
+];
 
 /// Elementos que no tienen cierre.
 const VACIOS: &[&str] = &[
-    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
+    "track", "wbr",
 ];
 
 /// Elementos que cortan la línea al abrirse o cerrarse.
 const DE_BLOQUE: &[&str] = &[
-    "p", "div", "br", "li", "ul", "ol", "tr", "td", "th", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article",
-    "header", "footer", "blockquote", "nav", "main", "aside",
+    "p",
+    "div",
+    "br",
+    "li",
+    "ul",
+    "ol",
+    "tr",
+    "td",
+    "th",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "section",
+    "article",
+    "header",
+    "footer",
+    "blockquote",
+    "nav",
+    "main",
+    "aside",
 ];
 
 struct Abierto {
@@ -63,7 +87,8 @@ pub fn extraer(html: &str) -> Extraido {
         }
 
         // `a < b` no es una etiqueta: tras el `<` tiene que venir una letra, `/`, `!` o `?`.
-        let es_etiqueta = resto[1..].starts_with(|c: char| c.is_ascii_alphabetic() || matches!(c, '/' | '!' | '?'));
+        let es_etiqueta = resto[1..]
+            .starts_with(|c: char| c.is_ascii_alphabetic() || matches!(c, '/' | '!' | '?'));
         let Some(fin) = resto.find('>').filter(|_| es_etiqueta) else {
             agregar_texto(&mut salida, &pila, "<");
             resto = &resto[1..];
@@ -114,7 +139,11 @@ pub fn extraer(html: &str) -> Extraido {
         if oculto && !pila.iter().any(|a| a.oculto) {
             salida.elementos_ocultos += 1;
         }
-        pila.push(Abierto { enlace: nombre == "a", nombre, oculto });
+        pila.push(Abierto {
+            enlace: nombre == "a",
+            nombre,
+            oculto,
+        });
     }
 
     salida.visible = compactar(&salida.visible);
@@ -191,7 +220,11 @@ pub fn decodificar_entidades(texto: &str) -> String {
         resto = &resto[i..];
         // Se busca el `;` por caracteres, no por bytes: cortar en un byte fijo
         // podría caer en medio de una letra acentuada.
-        let Some(fin) = resto.char_indices().take_while(|(i, _)| *i < 12).find(|(_, c)| *c == ';').map(|(i, _)| i)
+        let Some(fin) = resto
+            .char_indices()
+            .take_while(|(i, _)| *i < 12)
+            .find(|(_, c)| *c == ';')
+            .map(|(i, _)| i)
         else {
             salida.push('&');
             resto = &resto[1..];
@@ -254,13 +287,17 @@ mod tests {
              <span hidden>otro</span><p aria-hidden=\"true\">más</p>",
         );
         assert_eq!(e.visible, "Hola mundo");
-        assert!(e.oculto.contains("secreto") && e.oculto.contains("otro") && e.oculto.contains("más"));
+        assert!(
+            e.oculto.contains("secreto") && e.oculto.contains("otro") && e.oculto.contains("más")
+        );
         assert_eq!(e.elementos_ocultos, 3);
     }
 
     #[test]
     fn descarta_scripts_estilos_y_comentarios() {
-        let e = extraer("<style>p{}</style><script>alert(1)</script><!-- nota -->texto<SCRIPT>x</SCRIPT>");
+        let e = extraer(
+            "<style>p{}</style><script>alert(1)</script><!-- nota -->texto<SCRIPT>x</SCRIPT>",
+        );
         assert_eq!(e.visible, "texto");
     }
 
@@ -279,18 +316,27 @@ mod tests {
 
     #[test]
     fn decodifica_entidades_con_nombre_y_numericas() {
-        assert_eq!(decodificar_entidades("a &amp; b &lt;x&gt; &#105;&#x67; &raro; &"), "a & b <x> ig &raro; &");
+        assert_eq!(
+            decodificar_entidades("a &amp; b &lt;x&gt; &#105;&#x67; &raro; &"),
+            "a & b <x> ig &raro; &"
+        );
     }
 
     #[test]
     fn un_menor_que_suelto_es_texto() {
-        assert_eq!(extraer("<p>si a < b y c > d</p>").visible, "si a < b y c > d");
+        assert_eq!(
+            extraer("<p>si a < b y c > d</p>").visible,
+            "si a < b y c > d"
+        );
         assert_eq!(extraer("fin <").visible, "fin <");
     }
 
     #[test]
     fn una_entidad_junto_a_acentos_no_rompe() {
-        assert_eq!(decodificar_entidades("&áéíóúñ sin cierre"), "&áéíóúñ sin cierre");
+        assert_eq!(
+            decodificar_entidades("&áéíóúñ sin cierre"),
+            "&áéíóúñ sin cierre"
+        );
         assert_eq!(decodificar_entidades("canción &amp; más"), "canción & más");
     }
 
@@ -303,7 +349,10 @@ mod tests {
 
     #[test]
     fn el_head_no_es_texto_del_cuerpo() {
-        assert_eq!(extraer("<head><title>Título</title></head><body>cuerpo</body>").visible, "cuerpo");
+        assert_eq!(
+            extraer("<head><title>Título</title></head><body>cuerpo</body>").visible,
+            "cuerpo"
+        );
     }
 
     #[test]

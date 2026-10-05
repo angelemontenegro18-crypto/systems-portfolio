@@ -21,7 +21,12 @@ pub struct UmbralesBasura {
 
 impl Default for UmbralesBasura {
     fn default() -> Self {
-        Self { min_caracteres: 280, min_palabras: 50, max_fraccion_enlaces: 0.5, max_fraccion_repetida: 0.5 }
+        Self {
+            min_caracteres: 280,
+            min_palabras: 50,
+            max_fraccion_enlaces: 0.5,
+            max_fraccion_repetida: 0.5,
+        }
     }
 }
 
@@ -42,23 +47,42 @@ pub struct Medidas {
 pub fn medir(e: &Extraido) -> Medidas {
     let caracteres = e.visible.chars().filter(|c| !c.is_whitespace()).count();
     let palabras = e.visible.split_whitespace().count();
-    let fraccion_enlaces = if caracteres == 0 { 0.0 } else { e.caracteres_en_enlaces as f64 / caracteres as f64 };
+    let fraccion_enlaces = if caracteres == 0 {
+        0.0
+    } else {
+        e.caracteres_en_enlaces as f64 / caracteres as f64
+    };
 
     let lineas: Vec<&str> = e.visible.lines().filter(|l| !l.trim().is_empty()).collect();
     let mut vistas = std::collections::HashSet::new();
     let repetidas = lineas.iter().filter(|l| !vistas.insert(l.trim())).count();
-    let fraccion_repetida = if lineas.is_empty() { 0.0 } else { repetidas as f64 / lineas.len() as f64 };
+    let fraccion_repetida = if lineas.is_empty() {
+        0.0
+    } else {
+        repetidas as f64 / lineas.len() as f64
+    };
 
-    Medidas { caracteres, palabras, fraccion_enlaces, fraccion_repetida }
+    Medidas {
+        caracteres,
+        palabras,
+        fraccion_enlaces,
+        fraccion_repetida,
+    }
 }
 
 /// `Some(motivo)` si el documento es basura según `u`.
 pub fn motivo_de_basura(m: &Medidas, u: &UmbralesBasura) -> Option<String> {
     if m.caracteres < u.min_caracteres {
-        return Some(format!("muy poco texto: {} caracteres (mínimo {})", m.caracteres, u.min_caracteres));
+        return Some(format!(
+            "muy poco texto: {} caracteres (mínimo {})",
+            m.caracteres, u.min_caracteres
+        ));
     }
     if m.palabras < u.min_palabras {
-        return Some(format!("muy pocas palabras: {} (mínimo {})", m.palabras, u.min_palabras));
+        return Some(format!(
+            "muy pocas palabras: {} (mínimo {})",
+            m.palabras, u.min_palabras
+        ));
     }
     if m.fraccion_enlaces > u.max_fraccion_enlaces {
         return Some(format!(

@@ -70,10 +70,19 @@ impl fmt::Display for ErrorRegistro {
         match self {
             Self::Vetada { nombre, motivo } => write!(f, "`{nombre}` está vetada: {motivo}"),
             Self::Duplicada(n) => write!(f, "ya hay una herramienta `{n}`"),
-            Self::NombreInvalido(n) => write!(f, "`{n}` no es un nombre válido (minúsculas, dígitos y `_`)"),
-            Self::EsquemaInvalido { nombre, detalle } => write!(f, "esquema de `{nombre}`: {detalle}"),
+            Self::NombreInvalido(n) => write!(
+                f,
+                "`{n}` no es un nombre válido (minúsculas, dígitos y `_`)"
+            ),
+            Self::EsquemaInvalido { nombre, detalle } => {
+                write!(f, "esquema de `{nombre}`: {detalle}")
+            }
             Self::EjemploInvalido { nombre, errores } => {
-                write!(f, "el ejemplo de `{nombre}` no cumple su esquema: {}", errores.join("; "))
+                write!(
+                    f,
+                    "el ejemplo de `{nombre}` no cumple su esquema: {}",
+                    errores.join("; ")
+                )
             }
         }
     }
@@ -138,7 +147,10 @@ pub struct Limites {
 
 impl Default for Limites {
     fn default() -> Self {
-        Self { max_bytes_entrada: 64 * 1024, max_bytes_salida: 64 * 1024 }
+        Self {
+            max_bytes_entrada: 64 * 1024,
+            max_bytes_salida: 64 * 1024,
+        }
     }
 }
 
@@ -153,7 +165,8 @@ fn nombre_valido(n: &str) -> bool {
     !n.is_empty()
         && n.len() <= 64
         && n.starts_with(|c: char| c.is_ascii_lowercase())
-        && n.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+        && n.chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
 impl Registro {
@@ -164,7 +177,10 @@ impl Registro {
 
     /// Un registro vacío con estos límites.
     pub fn con_limites(limites: Limites) -> Self {
-        Self { herramientas: BTreeMap::new(), limites }
+        Self {
+            herramientas: BTreeMap::new(),
+            limites,
+        }
     }
 
     /// Registra una herramienta, después de verificar nombre, veto, esquema y ejemplo.
@@ -173,15 +189,24 @@ impl Registro {
             return Err(ErrorRegistro::NombreInvalido(h.nombre.to_string()));
         }
         if let Some(motivo) = politica::motivo_de_veto(h.nombre) {
-            return Err(ErrorRegistro::Vetada { nombre: h.nombre.to_string(), motivo });
+            return Err(ErrorRegistro::Vetada {
+                nombre: h.nombre.to_string(),
+                motivo,
+            });
         }
         if self.herramientas.contains_key(h.nombre) {
             return Err(ErrorRegistro::Duplicada(h.nombre.to_string()));
         }
-        esquema::revisar_esquema(&h.esquema)
-            .map_err(|detalle| ErrorRegistro::EsquemaInvalido { nombre: h.nombre.to_string(), detalle })?;
-        esquema::validar(&h.esquema, &h.ejemplo)
-            .map_err(|errores| ErrorRegistro::EjemploInvalido { nombre: h.nombre.to_string(), errores })?;
+        esquema::revisar_esquema(&h.esquema).map_err(|detalle| ErrorRegistro::EsquemaInvalido {
+            nombre: h.nombre.to_string(),
+            detalle,
+        })?;
+        esquema::validar(&h.esquema, &h.ejemplo).map_err(|errores| {
+            ErrorRegistro::EjemploInvalido {
+                nombre: h.nombre.to_string(),
+                errores,
+            }
+        })?;
         self.herramientas.insert(h.nombre, h);
         Ok(())
     }
@@ -219,11 +244,17 @@ impl Registro {
 
     /// Invoca una herramienta con argumentos producidos por el modelo.
     pub fn invocar(&self, nombre: &str, argumentos: &Value) -> Result<Value, ErrorInvocacion> {
-        let h = self.herramientas.get(nombre).ok_or_else(|| ErrorInvocacion::NoExiste(nombre.to_string()))?;
+        let h = self
+            .herramientas
+            .get(nombre)
+            .ok_or_else(|| ErrorInvocacion::NoExiste(nombre.to_string()))?;
 
         let bytes = argumentos.to_string().len();
         if bytes > self.limites.max_bytes_entrada {
-            return Err(ErrorInvocacion::EntradaDemasiadoGrande { bytes, maximo: self.limites.max_bytes_entrada });
+            return Err(ErrorInvocacion::EntradaDemasiadoGrande {
+                bytes,
+                maximo: self.limites.max_bytes_entrada,
+            });
         }
         esquema::validar(&h.esquema, argumentos).map_err(ErrorInvocacion::ArgumentosInvalidos)?;
 
@@ -234,7 +265,10 @@ impl Registro {
 
         let bytes = resultado.to_string().len();
         if bytes > self.limites.max_bytes_salida {
-            return Err(ErrorInvocacion::SalidaDemasiadoGrande { bytes, maximo: self.limites.max_bytes_salida });
+            return Err(ErrorInvocacion::SalidaDemasiadoGrande {
+                bytes,
+                maximo: self.limites.max_bytes_salida,
+            });
         }
         Ok(resultado)
     }
@@ -243,8 +277,12 @@ impl Registro {
     /// marca de error cuando corresponde. Nunca falla.
     pub fn responder(&self, id_llamada: &str, nombre: &str, argumentos: &Value) -> Value {
         match self.invocar(nombre, argumentos) {
-            Ok(v) => json!({"tool_use_id": id_llamada, "content": v.to_string(), "is_error": false}),
-            Err(e) => json!({"tool_use_id": id_llamada, "content": e.to_string(), "is_error": true}),
+            Ok(v) => {
+                json!({"tool_use_id": id_llamada, "content": v.to_string(), "is_error": false})
+            }
+            Err(e) => {
+                json!({"tool_use_id": id_llamada, "content": e.to_string(), "is_error": true})
+            }
         }
     }
 }

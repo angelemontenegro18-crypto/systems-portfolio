@@ -56,18 +56,32 @@ fn archivos(dir: &Path, salida: &mut Vec<PathBuf>) {
 fn codigo(p: &Path) -> String {
     let t = std::fs::read_to_string(p).expect("fuente");
     let abre_bloque = ["/* ", "/*\n", "/**", "/*!"].iter().any(|m| t.contains(m));
-    assert!(!abre_bloque, "{}: comentario de bloque; adaptar el escaneo", p.display());
-    t.lines().map(|l| l.split("//").next().unwrap_or("")).collect::<Vec<_>>().join("\n").to_lowercase()
+    assert!(
+        !abre_bloque,
+        "{}: comentario de bloque; adaptar el escaneo",
+        p.display()
+    );
+    t.lines()
+        .map(|l| l.split("//").next().unwrap_or(""))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .to_lowercase()
 }
 
 fn hallazgos(texto: &str) -> Vec<String> {
-    prohibidos().into_iter().filter(|p| texto.contains(p.as_str())).collect()
+    prohibidos()
+        .into_iter()
+        .filter(|p| texto.contains(p.as_str()))
+        .collect()
 }
 
 #[test]
 fn el_codigo_no_contiene_mecanismos_de_evasion() {
     let mut v = Vec::new();
-    archivos(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src"), &mut v);
+    archivos(
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src"),
+        &mut v,
+    );
     assert!(v.len() >= 5, "no se encontraron las fuentes");
     for p in v {
         let h = hallazgos(&codigo(&p));
@@ -78,7 +92,8 @@ fn el_codigo_no_contiene_mecanismos_de_evasion() {
 #[test]
 fn las_dependencias_son_exactamente_las_declaradas() {
     let manifiesto =
-        std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).expect("Cargo.toml");
+        std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+            .expect("Cargo.toml");
     let mut en_deps = false;
     let mut deps = Vec::new();
     for linea in manifiesto.lines().map(str::trim) {
@@ -88,14 +103,24 @@ fn las_dependencias_son_exactamente_las_declaradas() {
             deps.push(linea.split('=').next().unwrap_or("").trim().to_string());
         }
     }
-    assert_eq!(deps, vec!["ureq", "url"], "una dependencia nueva tiene que pasar por revisión");
+    assert_eq!(
+        deps,
+        vec!["ureq", "url"],
+        "una dependencia nueva tiene que pasar por revisión"
+    );
 }
 
 #[test]
 fn el_escaneo_detectaria_una_violacion() {
     // Alguien intenta agregar un interruptor para ignorar robots.txt.
-    let codigo_falso = format!("pub struct Config {{ pub {}: bool }}", "respect".to_owned() + "_robots");
-    assert_eq!(hallazgos(&codigo_falso), vec![format!("{}{}", "respect", "_robots")]);
+    let codigo_falso = format!(
+        "pub struct Config {{ pub {}: bool }}",
+        "respect".to_owned() + "_robots"
+    );
+    assert_eq!(
+        hallazgos(&codigo_falso),
+        vec![format!("{}{}", "respect", "_robots")]
+    );
     let otro = format!("fn {}(&mut self) {{}}", "rotar_".to_owned() + "agente");
     assert!(!hallazgos(&otro).is_empty());
     assert!(hallazgos("fn obtener(&mut self, url: &str) {}").is_empty());

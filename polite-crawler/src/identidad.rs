@@ -16,8 +16,18 @@ use std::fmt;
 
 /// Nombres que no se pueden usar: presentarse como ellos sería suplantarlos.
 const NOMBRES_AJENOS: &[&str] = &[
-    "mozilla", "chrome", "safari", "firefox", "edge", "opera", "googlebot", "bingbot", "applebot", "duckduckbot",
-    "yandex", "baiduspider",
+    "mozilla",
+    "chrome",
+    "safari",
+    "firefox",
+    "edge",
+    "opera",
+    "googlebot",
+    "bingbot",
+    "applebot",
+    "duckduckbot",
+    "yandex",
+    "baiduspider",
 ];
 
 /// Por qué una identidad no es válida.
@@ -36,10 +46,20 @@ pub enum ErrorIdentidad {
 impl fmt::Display for ErrorIdentidad {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Nombre(n) => write!(f, "nombre de producto inválido `{n}`: 1 a 32 letras, `_` o `-`"),
-            Self::NombreAjeno(n) => write!(f, "`{n}` imita a un navegador o al bot de otro: usa un nombre propio"),
-            Self::Version(v) => write!(f, "versión inválida `{v}`: 1 a 16 letras, dígitos o puntos"),
-            Self::Contacto(c) => write!(f, "contacto inválido `{c}`: una URL http(s):// o un correo"),
+            Self::Nombre(n) => write!(
+                f,
+                "nombre de producto inválido `{n}`: 1 a 32 letras, `_` o `-`"
+            ),
+            Self::NombreAjeno(n) => write!(
+                f,
+                "`{n}` imita a un navegador o al bot de otro: usa un nombre propio"
+            ),
+            Self::Version(v) => {
+                write!(f, "versión inválida `{v}`: 1 a 16 letras, dígitos o puntos")
+            }
+            Self::Contacto(c) => {
+                write!(f, "contacto inválido `{c}`: una URL http(s):// o un correo")
+            }
         }
     }
 }
@@ -57,7 +77,9 @@ impl Identidad {
     /// Arma y valida una identidad.
     pub fn nueva(nombre: &str, version: &str, contacto: &str) -> Result<Self, ErrorIdentidad> {
         let nombre_ok = (1..=32).contains(&nombre.len())
-            && nombre.chars().all(|c| c.is_ascii_alphabetic() || c == '_' || c == '-');
+            && nombre
+                .chars()
+                .all(|c| c.is_ascii_alphabetic() || c == '_' || c == '-');
         if !nombre_ok {
             return Err(ErrorIdentidad::Nombre(nombre.into()));
         }
@@ -66,22 +88,31 @@ impl Identidad {
             return Err(ErrorIdentidad::NombreAjeno(nombre.into()));
         }
 
-        let version_ok =
-            (1..=16).contains(&version.len()) && version.chars().all(|c| c.is_ascii_alphanumeric() || c == '.');
+        let version_ok = (1..=16).contains(&version.len())
+            && version
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.');
         if !version_ok {
             return Err(ErrorIdentidad::Version(version.into()));
         }
 
         let imprimible = !contacto.is_empty()
             && contacto.len() <= 200
-            && contacto.chars().all(|c| c.is_ascii_graphic() && c != '(' && c != ')');
+            && contacto
+                .chars()
+                .all(|c| c.is_ascii_graphic() && c != '(' && c != ')');
         let parece_url = contacto.starts_with("https://") || contacto.starts_with("http://");
-        let parece_correo = contacto.split_once('@').is_some_and(|(u, d)| !u.is_empty() && d.contains('.'));
+        let parece_correo = contacto
+            .split_once('@')
+            .is_some_and(|(u, d)| !u.is_empty() && d.contains('.'));
         if !imprimible || !(parece_url || parece_correo) {
             return Err(ErrorIdentidad::Contacto(contacto.into()));
         }
 
-        Ok(Self { token: bajo, cadena: format!("{nombre}/{version} (+{contacto})") })
+        Ok(Self {
+            token: bajo,
+            cadena: format!("{nombre}/{version} (+{contacto})"),
+        })
     }
 
     /// El token de producto, en minúsculas: con él se eligen las reglas de `robots.txt`.
@@ -109,8 +140,20 @@ mod tests {
 
     #[test]
     fn no_se_puede_prescindir_del_contacto() {
-        for malo in ["", "nadie", "ftp://x.test", "https://x.test/(a)", "sin espacio@ejemplo.test"] {
-            assert!(matches!(Identidad::nueva("Lector", "1", malo), Err(ErrorIdentidad::Contacto(_))), "`{malo}`");
+        for malo in [
+            "",
+            "nadie",
+            "ftp://x.test",
+            "https://x.test/(a)",
+            "sin espacio@ejemplo.test",
+        ] {
+            assert!(
+                matches!(
+                    Identidad::nueva("Lector", "1", malo),
+                    Err(ErrorIdentidad::Contacto(_))
+                ),
+                "`{malo}`"
+            );
         }
     }
 
@@ -118,7 +161,10 @@ mod tests {
     fn no_se_puede_hacer_pasar_por_un_navegador_ni_por_otro_bot() {
         for ajeno in ["Mozilla", "MiChromeLector", "Googlebot", "BINGBOT"] {
             assert!(
-                matches!(Identidad::nueva(ajeno, "1", "https://x.test"), Err(ErrorIdentidad::NombreAjeno(_))),
+                matches!(
+                    Identidad::nueva(ajeno, "1", "https://x.test"),
+                    Err(ErrorIdentidad::NombreAjeno(_))
+                ),
                 "`{ajeno}`"
             );
         }
@@ -126,8 +172,17 @@ mod tests {
 
     #[test]
     fn nombre_y_version_se_validan() {
-        assert!(matches!(Identidad::nueva("Mi Lector", "1", "https://x.test"), Err(ErrorIdentidad::Nombre(_))));
-        assert!(matches!(Identidad::nueva("Lector/2", "1", "https://x.test"), Err(ErrorIdentidad::Nombre(_))));
-        assert!(matches!(Identidad::nueva("Lector", "1 beta", "https://x.test"), Err(ErrorIdentidad::Version(_))));
+        assert!(matches!(
+            Identidad::nueva("Mi Lector", "1", "https://x.test"),
+            Err(ErrorIdentidad::Nombre(_))
+        ));
+        assert!(matches!(
+            Identidad::nueva("Lector/2", "1", "https://x.test"),
+            Err(ErrorIdentidad::Nombre(_))
+        ));
+        assert!(matches!(
+            Identidad::nueva("Lector", "1 beta", "https://x.test"),
+            Err(ErrorIdentidad::Version(_))
+        ));
     }
 }

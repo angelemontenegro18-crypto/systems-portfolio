@@ -18,10 +18,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let copia_gen_1 = fs::read(&ruta)?;
     almacen.guardar("sesion", 2, br#"{"usuarios_activos": 15}"#)?;
     if let Some(c) = almacen.cargar("sesion")? {
-        println!("   generación {} · {}", c.generacion, String::from_utf8_lossy(&c.datos));
+        println!(
+            "   generación {} · {}",
+            c.generacion,
+            String::from_utf8_lossy(&c.datos)
+        );
     }
     let bytes = fs::read(&ruta)?;
-    println!("   en disco: {} bytes, generación legible sin la clave: {}", bytes.len(), sello::generacion_sin_verificar(&bytes)?);
+    println!(
+        "   en disco: {} bytes, generación legible sin la clave: {}",
+        bytes.len(),
+        sello::generacion_sin_verificar(&bytes)?
+    );
 
     println!("\n2 · Un byte alterado en disco\n");
     let mut alterado = bytes.clone();
@@ -32,12 +40,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n3 · El archivo copiado con otro nombre\n");
     fs::copy(&ruta, almacen.ruta_de("config")?)?;
-    println!("   cargar(\"config\") → {}", resultado(almacen.cargar("config")));
+    println!(
+        "   cargar(\"config\") → {}",
+        resultado(almacen.cargar("config"))
+    );
 
     println!("\n4 · Alguien repone una copia vieja (auténtica)\n");
     fs::write(&ruta, &copia_gen_1)?;
-    println!("   cargar              → {}", resultado(almacen.cargar("sesion")));
-    println!("   cargar_desde(mín 2) → {}", resultado(almacen.cargar_desde("sesion", 2)));
+    println!(
+        "   cargar              → {}",
+        resultado(almacen.cargar("sesion"))
+    );
+    println!(
+        "   cargar_desde(mín 2) → {}",
+        resultado(almacen.cargar_desde("sesion", 2))
+    );
 
     println!("\n5 · Guardar una generación que no avanza\n");
     fs::write(&ruta, &bytes)?;

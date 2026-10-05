@@ -50,7 +50,11 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { max_bytes_entrada: 1 << 20, basura: UmbralesBasura::default(), presupuesto_caracteres: 8_000 }
+        Self {
+            max_bytes_entrada: 1 << 20,
+            basura: UmbralesBasura::default(),
+            presupuesto_caracteres: 8_000,
+        }
     }
 }
 
@@ -125,12 +129,22 @@ impl Triaje {
 
     /// Inspecciona un documento y decide.
     pub fn inspeccionar(&self, origen: &str, documento: &str) -> Veredicto {
-        let rechazar = |etapa, motivo, hallazgos| Veredicto::Rechazado(Rechazo { etapa, motivo, hallazgos });
+        let rechazar = |etapa, motivo, hallazgos| {
+            Veredicto::Rechazado(Rechazo {
+                etapa,
+                motivo,
+                hallazgos,
+            })
+        };
 
         if documento.len() > self.config.max_bytes_entrada {
             return rechazar(
                 Etapa::Entrada,
-                format!("documento de {} bytes (máximo {})", documento.len(), self.config.max_bytes_entrada),
+                format!(
+                    "documento de {} bytes (máximo {})",
+                    documento.len(),
+                    self.config.max_bytes_entrada
+                ),
                 Vec::new(),
             );
         }
@@ -155,10 +169,19 @@ impl Triaje {
             invisibles: visible.invisibles + oculto.invisibles,
             palabras_mezcladas: visible.palabras_mezcladas + oculto.palabras_mezcladas,
             elementos_ocultos: extraido.elementos_ocultos,
-            caracteres_ocultos: oculto.entregable.chars().filter(|c| !c.is_whitespace()).count(),
+            caracteres_ocultos: oculto
+                .entregable
+                .chars()
+                .filter(|c| !c.is_whitespace())
+                .count(),
         };
         let (texto, recortado) = destilar(&visible.entregable, self.config.presupuesto_caracteres);
-        Veredicto::Aceptado(Destilado { origen: origen.to_string(), texto, recortado, senales })
+        Veredicto::Aceptado(Destilado {
+            origen: origen.to_string(),
+            texto,
+            recortado,
+            senales,
+        })
     }
 }
 
@@ -185,13 +208,19 @@ fn resumir(hallazgos: &[Hallazgo]) -> String {
 /// el presupuesto. Nunca corta una palabra a la mitad si puede evitarlo.
 fn destilar(texto: &str, presupuesto: usize) -> (String, bool) {
     let mut vistas = std::collections::HashSet::new();
-    let lineas: Vec<&str> = texto.lines().filter(|l| l.trim().is_empty() || vistas.insert(l.trim())).collect();
+    let lineas: Vec<&str> = texto
+        .lines()
+        .filter(|l| l.trim().is_empty() || vistas.insert(l.trim()))
+        .collect();
     let limpio = lineas.join("\n");
 
     if limpio.chars().count() <= presupuesto {
         return (limpio, false);
     }
     let corte: String = limpio.chars().take(presupuesto).collect();
-    let hasta = corte.rfind('\n').or_else(|| corte.rfind(' ')).unwrap_or(corte.len());
+    let hasta = corte
+        .rfind('\n')
+        .or_else(|| corte.rfind(' '))
+        .unwrap_or(corte.len());
     (corte[..hasta].trim_end().to_string(), true)
 }

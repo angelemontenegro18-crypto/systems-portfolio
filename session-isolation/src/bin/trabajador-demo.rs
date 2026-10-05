@@ -33,11 +33,21 @@ fn main() -> ExitCode {
     match peticion.tarea {
         Tarea::Escalar(valores) => {
             if valores.len() > peticion.config.max_elementos as usize {
-                eprintln!("{} elementos, el máximo es {}", valores.len(), peticion.config.max_elementos);
+                eprintln!(
+                    "{} elementos, el máximo es {}",
+                    valores.len(),
+                    peticion.config.max_elementos
+                );
                 return ExitCode::from(3);
             }
-            let valores = valores.iter().map(|v| v.saturating_mul(peticion.config.factor)).collect();
-            let respuesta = Respuesta { generacion: peticion.generacion, valores };
+            let valores = valores
+                .iter()
+                .map(|v| v.saturating_mul(peticion.config.factor))
+                .collect();
+            let respuesta = Respuesta {
+                generacion: peticion.generacion,
+                valores,
+            };
             match serde_json::to_writer(io::stdout().lock(), &respuesta) {
                 Ok(()) => ExitCode::SUCCESS,
                 Err(e) => {

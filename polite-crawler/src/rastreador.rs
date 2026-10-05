@@ -108,9 +108,16 @@ impl fmt::Display for Rechazo {
             Self::UrlInvalida(u) => write!(f, "URL inválida: {u}"),
             Self::EsquemaNoSoportado(e) => write!(f, "esquema no soportado: {e}"),
             Self::ProhibidoPorRobots { motivo } => write!(f, "robots.txt no lo permite ({motivo})"),
-            Self::Esperar { desde_ms, motivo } => write!(f, "esperar hasta t={desde_ms} ms ({motivo:?})"),
-            Self::PresupuestoAgotado { paginas } => write!(f, "presupuesto agotado: {paginas} páginas"),
-            Self::FallaDeRed { mensaje, desde_ms } => write!(f, "falla de red ({mensaje}); reintentar desde t={desde_ms} ms"),
+            Self::Esperar { desde_ms, motivo } => {
+                write!(f, "esperar hasta t={desde_ms} ms ({motivo:?})")
+            }
+            Self::PresupuestoAgotado { paginas } => {
+                write!(f, "presupuesto agotado: {paginas} páginas")
+            }
+            Self::FallaDeRed { mensaje, desde_ms } => write!(
+                f,
+                "falla de red ({mensaje}); reintentar desde t={desde_ms} ms"
+            ),
         }
     }
 }
@@ -158,13 +165,22 @@ fn ms(d: Duration) -> u64 {
 /// `Retry-After` en segundos. La forma de fecha HTTP no se interpreta: se
 /// aplica el backoff exponencial en su lugar.
 fn retry_after_ms(valor: Option<&str>) -> Option<u64> {
-    valor?.trim().parse::<u64>().ok().map(|s| s.saturating_mul(1000))
+    valor?
+        .trim()
+        .parse::<u64>()
+        .ok()
+        .map(|s| s.saturating_mul(1000))
 }
 
 impl<T: Transporte> Rastreador<T> {
     /// Un rastreador con esta identidad y estos límites.
     pub fn nuevo(transporte: T, identidad: Identidad, config: Config) -> Self {
-        Self { transporte, identidad, config, origenes: HashMap::new() }
+        Self {
+            transporte,
+            identidad,
+            config,
+            origenes: HashMap::new(),
+        }
     }
 
     /// La identidad con la que se presenta.
@@ -186,7 +202,11 @@ impl<T: Transporte> Rastreador<T> {
         }
 
         // 1. robots.txt vigente para este origen.
-        let vigente = self.origenes.get(&origen).and_then(|o| o.robots.as_ref()).is_some_and(|r| r.1 > ahora_ms);
+        let vigente = self
+            .origenes
+            .get(&origen)
+            .and_then(|o| o.robots.as_ref())
+            .is_some_and(|r| r.1 > ahora_ms);
         if !vigente {
             self.puede_pedir(&origen, ahora_ms)?;
             self.leer_robots(&url, &origen, ahora_ms);
@@ -197,7 +217,10 @@ impl<T: Transporte> Rastreador<T> {
         if let Some((politica, _, motivo_general)) = &o.robots {
             let d = politica.decidir(&ruta);
             if !d.permitida {
-                let motivo = motivo_general.clone().or(d.regla).unwrap_or_else(|| "sin regla".into());
+                let motivo = motivo_general
+                    .clone()
+                    .or(d.regla)
+                    .unwrap_or_else(|| "sin regla".into());
                 return Err(Rechazo::ProhibidoPorRobots { motivo });
             }
         }
@@ -227,14 +250,29 @@ impl<T: Transporte> Rastreador<T> {
         };
 
         let espera_hasta_ms = if r.estado == 429 || r.estado >= 500 {
-            Some(Self::aplicar_backoff(o, &self.config, r.retry_after.as_deref(), ahora_ms))
+            Some(Self::aplicar_backoff(
+                o,
+                &self.config,
+                r.retry_after.as_deref(),
+                ahora_ms,
+            ))
         } else {
             o.fallas_seguidas = 0;
             None
         };
-        let redireccion =
-            if (300..400).contains(&r.estado) { r.location.as_deref().and_then(|l| url.join(l).ok()) } else { None };
-        Ok(Pagina { url, estado: r.estado, cuerpo: r.cuerpo, recortado: r.recortado, redireccion, espera_hasta_ms })
+        let redireccion = if (300..400).contains(&r.estado) {
+            r.location.as_deref().and_then(|l| url.join(l).ok())
+        } else {
+            None
+        };
+        Ok(Pagina {
+            url,
+            estado: r.estado,
+            cuerpo: r.cuerpo,
+            recortado: r.recortado,
+            redireccion,
+            espera_hasta_ms,
+        })
     }
 
     /// `Err(Esperar)` si todavía no toca pedirle nada a este origen.
@@ -266,14 +304,21 @@ impl<T: Transporte> Rastreador<T> {
     }
 
     /// Registra una falla y devuelve desde cuándo se puede volver a pedir.
-    fn aplicar_backoff(o: &mut Origen, config: &Config, retry_after: Option<&str>, ahora_ms: u64) -> u64 {
+    fn aplicar_backoff(
+        o: &mut Origen,
+        config: &Config,
+        retry_after: Option<&str>,
+        ahora_ms: u64,
+    ) -> u64 {
         o.fallas_seguidas = o.fallas_seguidas.saturating_add(1);
         let espera = match retry_after_ms(retry_after) {
             // Lo que pide el servidor se respeta tal cual: el tope es solo para el backoff propio.
             Some(pedido) => pedido,
             None => {
                 let factor = 1u64 << (o.fallas_seguidas - 1).min(20);
-                ms(config.espera_inicial).saturating_mul(factor).min(ms(config.espera_maxima))
+                ms(config.espera_inicial)
+                    .saturating_mul(factor)
+                    .min(ms(config.espera_maxima))
             }
         };
         let hasta = ahora_ms.saturating_add(espera).max(o.proxima_ms);
@@ -302,20 +347,27 @@ impl<T: Transporte> Rastreador<T> {
         let vigencia = ms(self.config.vigencia_robots);
         let reintento = ms(self.config.reintento_robots);
         let (robots, dura, motivo) = match &respuesta {
-            Ok(r) if (200..300).contains(&r.estado) => {
-                (Robots::parsear(&String::from_utf8_lossy(&r.cuerpo)), vigencia, None)
-            }
+            Ok(r) if (200..300).contains(&r.estado) => (
+                Robots::parsear(&String::from_utf8_lossy(&r.cuerpo)),
+                vigencia,
+                None,
+            ),
             Ok(r) if r.estado == 429 || r.estado >= 500 => (
                 Robots::prohibir_todo(),
                 reintento,
-                Some(format!("robots.txt respondió {}: se asume todo prohibido", r.estado)),
+                Some(format!(
+                    "robots.txt respondió {}: se asume todo prohibido",
+                    r.estado
+                )),
             ),
             // 4xx, o una cadena de redirecciones demasiado larga: no hay reglas.
             Ok(_) => (Robots::permitir_todo(), vigencia, None),
             Err(e) => (
                 Robots::prohibir_todo(),
                 reintento,
-                Some(format!("robots.txt inalcanzable ({e}): se asume todo prohibido")),
+                Some(format!(
+                    "robots.txt inalcanzable ({e}): se asume todo prohibido"
+                )),
             ),
         };
 

@@ -97,7 +97,10 @@ impl<T: Codificable<N>, const N: usize> Publicador<T, N> {
                 }
                 fence(Ordering::Acquire);
                 if self.secuencia.load(Ordering::Relaxed) == antes {
-                    return Instantanea { generacion: antes / 2, valor: T::desde_palabras(copia) };
+                    return Instantanea {
+                        generacion: antes / 2,
+                        valor: T::desde_palabras(copia),
+                    };
                 }
             }
             std::hint::spin_loop();
@@ -129,10 +132,22 @@ mod tests {
     #[test]
     fn cada_publicacion_avanza_una_generacion() {
         let p = Publicador::nuevo(&Par(1, 2));
-        assert_eq!(p.leer(), Instantanea { generacion: 0, valor: Par(1, 2) });
+        assert_eq!(
+            p.leer(),
+            Instantanea {
+                generacion: 0,
+                valor: Par(1, 2)
+            }
+        );
         assert_eq!(p.publicar(&Par(3, 4)), 1);
         assert_eq!(p.publicar(&Par(5, 6)), 2);
-        assert_eq!(p.leer(), Instantanea { generacion: 2, valor: Par(5, 6) });
+        assert_eq!(
+            p.leer(),
+            Instantanea {
+                generacion: 2,
+                valor: Par(5, 6)
+            }
+        );
         assert_eq!(p.generacion(), 2);
     }
 }

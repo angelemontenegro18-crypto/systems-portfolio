@@ -35,19 +35,31 @@ pub fn revisar_esquema(esquema: &Value) -> Result<(), String> {
 
 fn revisar_en(esquema: &Value, ruta: &str) -> Result<(), String> {
     let Some(obj) = esquema.as_object() else {
-        return Err(format!("{}: el esquema tiene que ser un objeto", mostrar(ruta)));
+        return Err(format!(
+            "{}: el esquema tiene que ser un objeto",
+            mostrar(ruta)
+        ));
     };
     for clave in obj.keys() {
         if !SOPORTADAS.contains(&clave.as_str()) {
-            return Err(format!("{}: palabra clave no soportada `{clave}`", mostrar(ruta)));
+            return Err(format!(
+                "{}: palabra clave no soportada `{clave}`",
+                mostrar(ruta)
+            ));
         }
     }
     if let Some(Value::Bool(true)) = obj.get("additionalProperties") {
-        return Err(format!("{}: `additionalProperties` solo admite `false`", mostrar(ruta)));
+        return Err(format!(
+            "{}: `additionalProperties` solo admite `false`",
+            mostrar(ruta)
+        ));
     }
     if let Some(props) = obj.get("properties") {
         let Some(props) = props.as_object() else {
-            return Err(format!("{}: `properties` tiene que ser un objeto", mostrar(ruta)));
+            return Err(format!(
+                "{}: `properties` tiene que ser un objeto",
+                mostrar(ruta)
+            ));
         };
         for (nombre, sub) in props {
             revisar_en(sub, &format!("{ruta}/{nombre}"))?;
@@ -110,14 +122,20 @@ fn validar_en(esquema: &Value, valor: &Value, ruta: &str, errores: &mut Vec<Stri
 
     if let Some(tipo) = e.get("type").and_then(Value::as_str) {
         if !cumple_tipo(tipo, valor) {
-            errores.push(format!("{donde}: se esperaba {tipo} y llegó {}", nombre_de_tipo(valor)));
+            errores.push(format!(
+                "{donde}: se esperaba {tipo} y llegó {}",
+                nombre_de_tipo(valor)
+            ));
             return;
         }
     }
 
     if let Some(opciones) = e.get("enum").and_then(Value::as_array) {
         if !opciones.contains(valor) {
-            errores.push(format!("{donde}: {valor} no es una de las opciones {}", Value::Array(opciones.clone())));
+            errores.push(format!(
+                "{donde}: {valor} no es una de las opciones {}",
+                Value::Array(opciones.clone())
+            ));
         }
     }
 
@@ -171,13 +189,21 @@ fn validar_en(esquema: &Value, valor: &Value, ruta: &str, errores: &mut Vec<Stri
     }
 }
 
-fn validar_objeto(e: &Map<String, Value>, obj: &Map<String, Value>, ruta: &str, errores: &mut Vec<String>) {
+fn validar_objeto(
+    e: &Map<String, Value>,
+    obj: &Map<String, Value>,
+    ruta: &str,
+    errores: &mut Vec<String>,
+) {
     let props = e.get("properties").and_then(Value::as_object);
 
     if let Some(requeridos) = e.get("required").and_then(Value::as_array) {
         for r in requeridos.iter().filter_map(Value::as_str) {
             if !obj.contains_key(r) {
-                errores.push(format!("{}: falta el campo obligatorio `{r}`", mostrar(ruta)));
+                errores.push(format!(
+                    "{}: falta el campo obligatorio `{r}`",
+                    mostrar(ruta)
+                ));
             }
         }
     }
@@ -186,7 +212,9 @@ fn validar_objeto(e: &Map<String, Value>, obj: &Map<String, Value>, ruta: &str, 
     for (nombre, valor) in obj {
         match props.and_then(|p| p.get(nombre)) {
             Some(sub) => validar_en(sub, valor, &format!("{ruta}/{nombre}"), errores),
-            None if cerrado => errores.push(format!("{}: campo no permitido `{nombre}`", mostrar(ruta))),
+            None if cerrado => {
+                errores.push(format!("{}: campo no permitido `{nombre}`", mostrar(ruta)))
+            }
             None => {}
         }
     }
@@ -212,13 +240,22 @@ mod tests {
 
     #[test]
     fn un_argumento_valido_pasa() {
-        assert_eq!(validar(&esquema(), &json!({"valores": [1, 2.5], "modo": "rapido", "n": 3})), Ok(()));
+        assert_eq!(
+            validar(
+                &esquema(),
+                &json!({"valores": [1, 2.5], "modo": "rapido", "n": 3})
+            ),
+            Ok(())
+        );
     }
 
     #[test]
     fn junta_todos_los_errores_con_su_ruta() {
-        let e = validar(&esquema(), &json!({"valores": [1, "dos", 3, 4], "modo": "lento", "n": 0, "x": 1}))
-            .expect_err("varios errores");
+        let e = validar(
+            &esquema(),
+            &json!({"valores": [1, "dos", 3, 4], "modo": "lento", "n": 0, "x": 1}),
+        )
+        .expect_err("varios errores");
         let texto = e.join(" | ");
         for esperado in [
             "/valores: 4 elemento(s), el máximo es 3",
@@ -234,7 +271,10 @@ mod tests {
     #[test]
     fn falta_un_obligatorio() {
         let e = validar(&esquema(), &json!({})).expect_err("falta valores");
-        assert_eq!(e, vec!["/: falta el campo obligatorio `valores`".to_string()]);
+        assert_eq!(
+            e,
+            vec!["/: falta el campo obligatorio `valores`".to_string()]
+        );
     }
 
     #[test]
@@ -247,7 +287,10 @@ mod tests {
     #[test]
     fn un_esquema_con_palabras_clave_desconocidas_se_rechaza() {
         let s = json!({"type": "object", "properties": {"c": {"type": "string", "pattern": "^a"}}});
-        assert_eq!(revisar_esquema(&s), Err("/c: palabra clave no soportada `pattern`".to_string()));
+        assert_eq!(
+            revisar_esquema(&s),
+            Err("/c: palabra clave no soportada `pattern`".to_string())
+        );
         assert!(revisar_esquema(&esquema()).is_ok());
     }
 }

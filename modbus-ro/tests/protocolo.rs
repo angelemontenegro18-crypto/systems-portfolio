@@ -9,7 +9,9 @@ use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use modbus_ro::{Bloque, Cliente, Equipo, ErrorModbus, ErrorTrama, EstadoEquipo, Funcion, Sondeador};
+use modbus_ro::{
+    Bloque, Cliente, Equipo, ErrorModbus, ErrorTrama, EstadoEquipo, Funcion, Sondeador,
+};
 
 #[derive(Clone, Copy)]
 enum Modo {
@@ -23,7 +25,11 @@ enum Modo {
 
 /// Valor determinista de cada registro, para poder comprobar lo leído.
 fn valor(funcion: u8, direccion: u16) -> u16 {
-    if funcion == 3 { direccion.wrapping_mul(10) } else { direccion.wrapping_add(1000) }
+    if funcion == 3 {
+        direccion.wrapping_mul(10)
+    } else {
+        direccion.wrapping_add(1000)
+    }
 }
 
 fn simulador(modo: Modo) -> SocketAddr {
@@ -87,19 +93,30 @@ fn conectar(direccion: SocketAddr, espera: Duration) -> Cliente<TcpStream> {
 #[test]
 fn lee_registros_de_retencion_y_de_entrada() {
     let mut c = conectar(simulador(Modo::Normal), Duration::from_secs(2));
-    assert_eq!(c.leer_retencion(10, 3).expect("retención"), vec![100, 110, 120]);
+    assert_eq!(
+        c.leer_retencion(10, 3).expect("retención"),
+        vec![100, 110, 120]
+    );
     assert_eq!(c.leer_entrada(5, 2).expect("entrada"), vec![1005, 1006]);
     // Varias lecturas seguidas sobre la misma conexión: las transacciones avanzan.
     for _ in 0..20 {
-        assert_eq!(c.leer(Funcion::RegistrosRetencion, 0, 1).expect("lectura"), vec![0]);
+        assert_eq!(
+            c.leer(Funcion::RegistrosRetencion, 0, 1).expect("lectura"),
+            vec![0]
+        );
     }
 }
 
 #[test]
 fn una_excepcion_del_equipo_llega_como_error_con_nombre() {
     let mut c = conectar(simulador(Modo::Normal), Duration::from_secs(2));
-    let e = c.leer_retencion(1000, 1).expect_err("dirección fuera del mapa");
-    assert!(matches!(e, ErrorModbus::Trama(ErrorTrama::Excepcion { codigo: 2 })), "{e:?}");
+    let e = c
+        .leer_retencion(1000, 1)
+        .expect_err("dirección fuera del mapa");
+    assert!(
+        matches!(e, ErrorModbus::Trama(ErrorTrama::Excepcion { codigo: 2 })),
+        "{e:?}"
+    );
     assert!(e.to_string().contains("dirección fuera del mapa"), "{e}");
     // La excepción no desincroniza el flujo: la siguiente lectura funciona.
     assert_eq!(c.leer_retencion(1, 1).expect("lectura posterior"), vec![10]);
@@ -111,21 +128,30 @@ fn un_equipo_mudo_produce_timeout_y_no_cuelga() {
     let inicio = Instant::now();
     let e = c.leer_retencion(0, 1).expect_err("el equipo no contesta");
     assert!(e.es_timeout(), "{e:?}");
-    assert!(inicio.elapsed() < Duration::from_secs(2), "tardó {:?}", inicio.elapsed());
+    assert!(
+        inicio.elapsed() < Duration::from_secs(2),
+        "tardó {:?}",
+        inicio.elapsed()
+    );
 }
 
 #[test]
 fn una_respuesta_de_otra_transaccion_se_rechaza() {
     let mut c = conectar(simulador(Modo::OtraTransaccion), Duration::from_secs(2));
     let e = c.leer_retencion(0, 1).expect_err("transacción ajena");
-    assert!(matches!(e, ErrorModbus::Trama(ErrorTrama::OtraTransaccion { .. })), "{e:?}");
+    assert!(
+        matches!(e, ErrorModbus::Trama(ErrorTrama::OtraTransaccion { .. })),
+        "{e:?}"
+    );
 }
 
 #[test]
 fn una_peticion_invalida_no_llega_a_la_red() {
     // Se rechaza antes de escribir en el socket: el error es de la petición, no del equipo.
     let mut c = conectar(simulador(Modo::Normal), Duration::from_secs(2));
-    let e = c.leer_retencion(0, 200).expect_err("cantidad fuera de rango");
+    let e = c
+        .leer_retencion(0, 200)
+        .expect_err("cantidad fuera de rango");
     assert!(matches!(e, ErrorModbus::PeticionInvalida(_)), "{e:?}");
 }
 
@@ -199,7 +225,15 @@ fn el_sondeador_sirve_el_cache_sin_esperar_a_la_red() {
     for _ in 0..50 {
         let inicio = Instant::now();
         let l = sondeador.lecturas();
-        assert!(inicio.elapsed() < Duration::from_millis(50), "lecturas() esperó {:?}", inicio.elapsed());
-        assert_eq!(l[0].estado, EstadoEquipo::Sondeando, "el primer ciclo sigue en curso");
+        assert!(
+            inicio.elapsed() < Duration::from_millis(50),
+            "lecturas() esperó {:?}",
+            inicio.elapsed()
+        );
+        assert_eq!(
+            l[0].estado,
+            EstadoEquipo::Sondeando,
+            "el primer ciclo sigue en curso"
+        );
     }
 }

@@ -45,14 +45,22 @@ pub struct TransporteHttp {
 impl TransporteHttp {
     /// `timeout` acota la conexión y la lectura; `max_bytes`, el cuerpo.
     pub fn nuevo(timeout: Duration, max_bytes: usize) -> Self {
-        let agente = ureq::AgentBuilder::new().redirects(0).timeout(timeout).build();
+        let agente = ureq::AgentBuilder::new()
+            .redirects(0)
+            .timeout(timeout)
+            .build();
         Self { agente, max_bytes }
     }
 }
 
 impl Transporte for TransporteHttp {
     fn get(&self, url: &Url, user_agent: &str) -> Result<Respuesta, String> {
-        let respuesta = match self.agente.get(url.as_str()).set("User-Agent", user_agent).call() {
+        let respuesta = match self
+            .agente
+            .get(url.as_str())
+            .set("User-Agent", user_agent)
+            .call()
+        {
             Ok(r) => r,
             Err(ureq::Error::Status(_, r)) => r,
             Err(ureq::Error::Transport(t)) => return Err(t.to_string()),
@@ -62,11 +70,23 @@ impl Transporte for TransporteHttp {
         let location = respuesta.header("Location").map(str::to_string);
 
         let mut cuerpo = Vec::new();
-        let tope = u64::try_from(self.max_bytes).unwrap_or(u64::MAX).saturating_add(1);
-        respuesta.into_reader().take(tope).read_to_end(&mut cuerpo).map_err(|e| e.to_string())?;
+        let tope = u64::try_from(self.max_bytes)
+            .unwrap_or(u64::MAX)
+            .saturating_add(1);
+        respuesta
+            .into_reader()
+            .take(tope)
+            .read_to_end(&mut cuerpo)
+            .map_err(|e| e.to_string())?;
         let recortado = cuerpo.len() > self.max_bytes;
         cuerpo.truncate(self.max_bytes);
 
-        Ok(Respuesta { estado, cuerpo, recortado, retry_after, location })
+        Ok(Respuesta {
+            estado,
+            cuerpo,
+            recortado,
+            retry_after,
+            location,
+        })
     }
 }

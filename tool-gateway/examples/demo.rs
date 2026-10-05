@@ -21,23 +21,39 @@ fn main() {
         }
     };
 
-    println!("Manifiesto que recibe el modelo ({} herramientas):", registro.len());
+    println!(
+        "Manifiesto que recibe el modelo ({} herramientas):",
+        registro.len()
+    );
     for h in registro.herramientas() {
         println!("  · {:<22} {}", h.nombre, h.descripcion);
     }
 
     println!("\nLlamadas del modelo:");
     let llamadas = [
-        ("distancia", json!({"a": {"x": 1, "y": 1}, "b": {"x": 4, "y": 5}})),
+        (
+            "distancia",
+            json!({"a": {"x": 1, "y": 1}, "b": {"x": 4, "y": 5}}),
+        ),
         ("estadisticas", json!({"valores": [3, "cuatro", 5]})),
-        ("convertir_temperatura", json!({"valor": 98.6, "de": "fahrenheit", "a": "celsius"})),
+        (
+            "convertir_temperatura",
+            json!({"valor": 98.6, "de": "fahrenheit", "a": "celsius"}),
+        ),
         ("validar_isbn", json!({"isbn": "978-84-376-0494-8"})),
         ("leer_archivo", json!({"ruta": "/etc/passwd"})),
     ];
     for (i, (nombre, args)) in llamadas.iter().enumerate() {
         let r = registro.responder(&format!("llamada_{i}"), nombre, args);
-        let marca = if r["is_error"] == true { "error" } else { "ok   " };
-        println!("  [{marca}] {nombre:<22} → {}", r["content"].as_str().unwrap_or_default());
+        let marca = if r["is_error"] == true {
+            "error"
+        } else {
+            "ok   "
+        };
+        println!(
+            "  [{marca}] {nombre:<22} → {}",
+            r["content"].as_str().unwrap_or_default()
+        );
     }
 
     println!("\nIntento de registrar una herramienta vetada:");

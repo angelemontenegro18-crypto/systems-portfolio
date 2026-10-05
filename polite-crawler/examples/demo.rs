@@ -12,7 +12,8 @@ use std::time::{Duration, Instant};
 
 use polite_crawler::{Config, Identidad, Rastreador, Rechazo, TransporteHttp};
 
-const ROBOTS: &str = "User-agent: *\nDisallow: /borradores/\nAllow: /borradores/publicados/\nCrawl-delay: 0.6\n";
+const ROBOTS: &str =
+    "User-agent: *\nDisallow: /borradores/\nAllow: /borradores/publicados/\nCrawl-delay: 0.6\n";
 
 fn sitio_simulado() -> std::io::Result<String> {
     let oyente = TcpListener::bind("127.0.0.1:0")?;
@@ -38,10 +39,20 @@ fn sitio_simulado() -> std::io::Result<String> {
                 "/robots.txt" => ("200 OK", String::new(), ROBOTS.to_string()),
                 "/noticias" if ocupado_una_vez => {
                     ocupado_una_vez = false;
-                    ("429 Too Many Requests", "Retry-After: 2\r\n".to_string(), String::new())
+                    (
+                        "429 Too Many Requests",
+                        "Retry-After: 2\r\n".to_string(),
+                        String::new(),
+                    )
                 }
-                "/viejo" => ("301 Moved Permanently", "Location: /noticias\r\n".to_string(), String::new()),
-                "/borradores/publicados/manual" | "/noticias" | "/" => ("200 OK", String::new(), format!("página {ruta}")),
+                "/viejo" => (
+                    "301 Moved Permanently",
+                    "Location: /noticias\r\n".to_string(),
+                    String::new(),
+                ),
+                "/borradores/publicados/manual" | "/noticias" | "/" => {
+                    ("200 OK", String::new(), format!("página {ruta}"))
+                }
                 _ => ("404 Not Found", String::new(), String::new()),
             };
             let _ = write!(
@@ -59,13 +70,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let identidad = Identidad::nueva("LectorDemo", "0.1", "https://ejemplo.test/bot")?;
     println!("Me presento como: {}\n", identidad.user_agent());
 
-    let config = Config { intervalo_minimo: Duration::from_millis(300), ..Config::default() };
-    let mut rastreador = Rastreador::nuevo(TransporteHttp::nuevo(Duration::from_secs(5), 1 << 20), identidad, config);
+    let config = Config {
+        intervalo_minimo: Duration::from_millis(300),
+        ..Config::default()
+    };
+    let mut rastreador = Rastreador::nuevo(
+        TransporteHttp::nuevo(Duration::from_secs(5), 1 << 20),
+        identidad,
+        config,
+    );
 
     let inicio = Instant::now();
     let reloj = || u64::try_from(inicio.elapsed().as_millis()).unwrap_or(u64::MAX);
-    let mut pendientes: Vec<String> =
-        ["/", "/borradores/idea", "/borradores/publicados/manual", "/viejo", "/noticias"].iter().map(|r| format!("{base}{r}")).collect();
+    let mut pendientes: Vec<String> = [
+        "/",
+        "/borradores/idea",
+        "/borradores/publicados/manual",
+        "/viejo",
+        "/noticias",
+    ]
+    .iter()
+    .map(|r| format!("{base}{r}"))
+    .collect();
     pendientes.reverse();
 
     while let Some(url) = pendientes.pop() {
@@ -75,14 +101,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let t = reloj();
                 match (p.estado, &p.redireccion, p.espera_hasta_ms) {
                     (_, Some(destino), _) => {
-                        println!("{t:>6} ms  {ruta:<32} {} → redirige a {} (se pide aparte)", p.estado, destino.path());
+                        println!(
+                            "{t:>6} ms  {ruta:<32} {} → redirige a {} (se pide aparte)",
+                            p.estado,
+                            destino.path()
+                        );
                         pendientes.push(destino.to_string());
                     }
                     (_, _, Some(hasta)) => {
-                        println!("{t:>6} ms  {ruta:<32} {} → el servidor pide esperar hasta {hasta} ms", p.estado);
+                        println!(
+                            "{t:>6} ms  {ruta:<32} {} → el servidor pide esperar hasta {hasta} ms",
+                            p.estado
+                        );
                         pendientes.push(url);
                     }
-                    _ => println!("{t:>6} ms  {ruta:<32} {} · {:?}", p.estado, String::from_utf8_lossy(&p.cuerpo)),
+                    _ => println!(
+                        "{t:>6} ms  {ruta:<32} {} · {:?}",
+                        p.estado,
+                        String::from_utf8_lossy(&p.cuerpo)
+                    ),
                 }
             }
             Err(Rechazo::Esperar { desde_ms, motivo }) => {

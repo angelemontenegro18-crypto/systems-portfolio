@@ -1,0 +1,15 @@
+[package]
+name = "signal-validator"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Validación de señales en series temporales sin engañarse: partición con purga y embargo, permutación por bloques, Benjamini–Hochberg y una muestra reservada que se abre una sola vez."
+readme = "README.md"
+keywords = ["statistics", "cross-validation", "permutation-test", "false-discovery", "time-series"]
+categories = ["science", "mathematics"]
+
+# Sin dependencias: el generador, el SHA-256 y la normal están en el crate.
+[dependencies]
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

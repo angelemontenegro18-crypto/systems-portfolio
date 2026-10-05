@@ -1,0 +1,15 @@
+[package]
+name = "autonomous-remediation"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Autoaplicar una remediación o abrir un ticket: cuatro puertas en AND, vuelta atrás armada antes de aplicar, fallo cerrado ante datos ausentes y un detector pasivo de cambios de ritmo."
+readme = "README.md"
+keywords = ["sre", "remediation", "incident", "cusum", "automation"]
+categories = ["development-tools"]
+
+# Sin dependencias.
+[dependencies]
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

@@ -1,0 +1,15 @@
+[package]
+name = "staged-agent"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Un agente que propone cambios en tres niveles de confianza: simular sin escribir, preparar en un worktree aislado y aplicar solo el plan exacto que se revisó."
+readme = "README.md"
+keywords = ["git", "agent", "dry-run", "worktree", "automation"]
+categories = ["development-tools", "command-line-utilities"]
+
+[dependencies]
+sha2 = "0.10"
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

@@ -1,0 +1,16 @@
+[package]
+name = "state-handoff"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Traspaso de estado entre un controlador activo y su respaldo, en no_std: paquete con CRC-32, cerca de época, verificación por tipos y confirmación en dos fases con borrado."
+readme = "README.md"
+keywords = ["no-std", "crc32", "typestate", "failover", "embedded"]
+categories = ["no-std", "embedded"]
+
+# Una sola dependencia, sin sus características por defecto (que traen `alloc`).
+[dependencies]
+zeroize = { version = "1.9", default-features = false }
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

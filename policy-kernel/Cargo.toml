@@ -1,0 +1,15 @@
+[package]
+name = "policy-kernel"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Núcleo de política para un interbloqueo de seguridad, en no_std: tabla de reglas validada en compilación, autorización como capacidad, órdenes selladas y estados por tipo; cierra en falla."
+readme = "README.md"
+keywords = ["no-std", "safety", "interlock", "typestate", "const-eval"]
+categories = ["no-std", "embedded"]
+
+# Sin dependencias: todo está en el crate.
+[dependencies]
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

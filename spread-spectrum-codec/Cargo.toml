@@ -1,0 +1,15 @@
+[package]
+name = "spread-spectrum-codec"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Módem de espectro ensanchado por secuencia directa (DSSS) en no_std: secuencias de máximo largo, códigos Gold, Hamming ampliado (8,4), entrelazado y sincronización de trama, con aritmética entera."
+readme = "README.md"
+keywords = ["dsss", "spread-spectrum", "no-std", "error-correction", "signal-processing"]
+categories = ["no-std", "embedded", "algorithms"]
+
+# Sin dependencias: todo está en el crate.
+[dependencies]
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

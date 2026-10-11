@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Miniaturas · consola de operaciones</title>
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css">
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="barra">
+  <div class="barra-interior">
+    <div class="marca">
+      <img src="/icono.svg" alt="" width="32" height="32">
+      <div>
+        <p class="marca-nombre">Miniaturas</p>
+        <p class="marca-sub">Consola de operaciones</p>
+      </div>
+    </div>
+    <p class="conexion" id="conexion" data-estado="cargando">
+      <span class="punto" aria-hidden="true"></span>
+      <span id="conexion-texto">Conectando…</span>
+    </p>
+  </div>
+  <nav class="secciones" aria-label="Secciones">
+    <ul>
+      <li><a href="#grupo">Grupo</a></li>
+      <li><a href="#servicios">Servicios</a></li>
+      <li><a href="#sistema">Sistema</a></li>
+      <li><a href="#registros">Registros</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="contenido" class="contenido" tabindex="-1">
+
+  <section id="grupo" class="panel panel-ancho" aria-labelledby="titulo-grupo">
+    <div class="panel-cabeza">
+      <div>
+        <h2 id="titulo-grupo">Grupo de trabajadores</h2>
+        <p class="panel-nota" id="grupo-resumen">Cargando el grupo…</p>
+      </div>
+      <button type="button" class="boton" id="boton-tick">Revisar ahora</button>
+    </div>
+
+    <div class="controles">
+      <form class="control" id="form-escala" novalidate>
+        <label for="cantidad">Posiciones</label>
+        <div class="fila">
+          <input id="cantidad" name="cantidad" type="number" inputmode="numeric" min="1" max="16" step="1" required aria-describedby="ayuda-cantidad">
+          <button type="submit" class="boton boton-primario">Escalar</button>
+        </div>
+        <p class="ayuda" id="ayuda-cantidad">Entre el mínimo y el máximo de la política.</p>
+      </form>
+
+      <form class="control" id="form-politica" novalidate>
+        <fieldset>
+          <legend>Política</legend>
+          <div class="fila">
+            <div class="campo">
+              <label for="minimo">Mínimo</label>
+              <input id="minimo" name="min" type="number" inputmode="numeric" min="1" max="16" step="1" required>
+            </div>
+            <div class="campo">
+              <label for="maximo">Máximo</label>
+              <input id="maximo" name="max" type="number" inputmode="numeric" min="1" max="16" step="1" required>
+            </div>
+            <button type="submit" class="boton">Aplicar</button>
+          </div>
+        </fieldset>
+      </form>
+    </div>
+
+    <p class="estado-panel" id="grupo-estado" role="status">Cargando…</p>
+    <ul class="tarjetas" id="tarjetas" aria-label="Posiciones del grupo"></ul>
+
+    <div class="revision" id="revision" hidden>
+      <h3>Última revisión</h3>
+      <p id="revision-resumen"></p>
+      <ul class="revision-acciones" id="revision-acciones"></ul>
+    </div>
+  </section>
+
+  <section id="servicios" class="panel" aria-labelledby="titulo-servicios">
+    <div class="panel-cabeza">
+      <div>
+        <h2 id="titulo-servicios">Servicios</h2>
+        <p class="panel-nota" id="servicios-nota">Estado según systemd.</p>
+      </div>
+    </div>
+    <p class="estado-panel" id="servicios-estado" role="status">Cargando…</p>
+    <div class="tabla-envoltura">
+      <table class="tabla" id="tabla-servicios" hidden>
+        <caption class="oculto">Estado de cada servicio vigilado</caption>
+        <thead>
+          <tr>
+            <th scope="col">Unidad</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="servicios-filas"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="sistema" class="panel" aria-labelledby="titulo-sistema">
+    <div class="panel-cabeza">
+      <div>
+        <h2 id="titulo-sistema">Sistema</h2>
+        <p class="panel-nota">Solo se informa si cada variable está definida: sus valores nunca salen del servidor.</p>
+      </div>
+    </div>
+    <dl class="datos" id="consola-datos">
+      <div><dt>Versión</dt><dd id="dato-version">—</dd></div>
+      <div><dt>Plataforma</dt><dd id="dato-plataforma">—</dd></div>
+      <div><dt>En marcha desde hace</dt><dd id="dato-activa">—</dd></div>
+    </dl>
+    <p class="estado-panel" id="sistema-estado" role="status">Cargando…</p>
+    <div class="tabla-envoltura">
+      <table class="tabla" id="tabla-variables" hidden>
+        <caption class="oculto">Variables de configuración</caption>
+        <thead>
+          <tr>
+            <th scope="col">Variable</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="variables-filas"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="registros" class="panel panel-ancho" aria-labelledby="titulo-registros">
+    <div class="panel-cabeza">
+      <div>
+        <h2 id="titulo-registros">Registros</h2>
+        <p class="panel-nota" id="registros-nota">Los datos sensibles se tapan antes de salir del servidor.</p>
+      </div>
+      <div class="controles-registro">
+        <label for="lineas">Líneas</label>
+        <select id="lineas">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+        </select>
+        <button type="button" class="boton" id="boton-pausa" aria-pressed="false">Pausar</button>
+      </div>
+    </div>
+    <p class="estado-panel" id="registros-estado" role="status">Cargando…</p>
+    <ol class="registro" id="registro-lineas" aria-label="Últimas líneas del registro" tabindex="0" hidden></ol>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <p>ops-console · se sirve solo en esta máquina; nada de esta página sale a la red.</p>
+</footer>
+
+<div class="avisos" id="avisos" role="status" aria-live="polite"></div>
+</body>
+</html>

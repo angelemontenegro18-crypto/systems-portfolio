@@ -1,0 +1,23 @@
+[package]
+name = "ops-console"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Consola de operaciones local: un servidor HTTP propio sobre std que se defiende del navegador, un grupo de procesos supervisado y registros que no filtran secretos."
+readme = "README.md"
+keywords = ["http-server", "security", "csrf", "process-supervisor", "dashboard"]
+categories = ["web-programming::http-server", "command-line-utilities"]
+
+# Sin dependencias: el HTTP y el JSON están escritos sobre `std`.
+[dependencies]
+
+[[bin]]
+name = "ops-console"
+path = "src/main.rs"
+
+[[bin]]
+name = "trabajador-demo"
+path = "src/bin/trabajador-demo.rs"
+
+# Workspace propio: cargo no busca uno en los directorios superiores.
+[workspace]

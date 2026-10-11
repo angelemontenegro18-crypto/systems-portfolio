@@ -1,6 +1,6 @@
 # systems-portfolio
 
-Doce proyectos independientes en Rust, cada uno con su propio README, sus pruebas y sus
+Trece proyectos independientes en Rust, cada uno con su propio README, sus pruebas y sus
 ejemplos. No comparten código ni dependen entre sí.
 
 | Proyecto | Qué demuestra | In English |
@@ -17,6 +17,7 @@ ejemplos. No comparten código ni dependen entre sí.
 | [`spread-spectrum-codec`](spread-spectrum-codec/) | Un módem de espectro ensanchado por secuencia directa, `no_std` y con aritmética entera: cada bit viaja como N chips, y un tono más fuerte que la señal no alcanza a voltearlo. | A direct-sequence spread-spectrum modem, `no_std` and integer-only: each bit travels as N chips, and a tone stronger than the signal can't flip it. |
 | [`state-handoff`](state-handoff/) | Traspaso de estado entre un controlador activo y su respaldo, en `no_std`: un paquete con dos CRC-32, una cerca de época que rechaza repeticiones, verificación por tipos y una confirmación en dos fases que borra lo que deja atrás. | State handoff between an active controller and its standby, in `no_std`: a packet with two CRC-32s, an epoch fence that rejects replays, type-level verification, and a two-phase commit that wipes what it leaves behind. |
 | [`policy-kernel`](policy-kernel/) | El núcleo de política de un interbloqueo de seguridad, en `no_std`: la tabla de reglas se valida al compilar, la autorización es una capacidad que solo la política entrega, y lo que no está permitido no compila o no llega al hardware. | The policy core of a safety interlock, in `no_std`: the rule table is validated at compile time, authorization is a capability only the policy can grant, and what isn't allowed either doesn't compile or never reaches the hardware. |
+| [`ops-console`](ops-console/) | Una consola de operaciones local, con su propio servidor HTTP escrito sobre `std`: solo puede escuchar en loopback, no se deja usar por otras páginas del navegador, supervisa sus procesos sin dejar huérfanos y muestra los registros con lo sensible tapado. | A local operations console with its own HTTP server written on `std`: it can only listen on loopback, can't be driven by other pages in the browser, supervises its processes without leaving orphans, and shows logs with sensitive data masked. |
 
 ## Cómo correr
 
@@ -33,12 +34,15 @@ ejemplo.
 
 ## Plataforma
 
-Probados con rustc 1.93 y 1.97. Los doce pasan `cargo fmt --check` con la configuración por
+Probados con rustc 1.93 y 1.97. Los trece pasan `cargo fmt --check` con la configuración por
 defecto de rustfmt. Algunas pruebas de `session-isolation` leen `/proc` y solo corren en
 Linux; en otros sistemas se omiten. Tres pruebas de `staged-agent` crean enlaces simbólicos y
 solo corren en Unix, y las de `staged-agent` necesitan `git` en el `PATH`. Las bibliotecas de
 `spread-spectrum-codec`, `state-handoff` y `policy-kernel` son `no_std` y no usan `alloc`;
-sus pruebas y ejemplos usan `std`, y ninguna depende de la plataforma.
+sus pruebas y ejemplos usan `std`, y ninguna depende de la plataforma. `ops-console` es para
+Linux y Windows: su vigía de servicios consulta `systemctl`, que solo existe en Linux (en
+Windows informa «no disponible»), y sus pruebas que miran o matan un proceso usan `kill` o
+`tasklist`/`taskkill` según el sistema.
 
 ## Licencia
 
